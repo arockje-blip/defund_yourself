@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Defend Yourself: World of Attacks</title>
+    <style>
+        body { margin: 0; padding: 0; background-color: #0c0f12; font-family: 'Consolas', Courier, monospace; overflow: hidden; color: #00ff41; }
+        #war-canvas { display: block; background-color: #05070a; width: 100vw; height: 100vh; }
+        
+        #ui-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; }
+        .hud-panel { position: absolute; background: rgba(12, 15, 18, 0.95); border: 1px solid #00ff41; padding: 15px; pointer-events: auto; box-shadow: 0 0 15px rgba(0, 255, 65, 0.2); }
+        
+        .top-left { top: 20px; left: 20px; width: 320px; }
+        .top-right { top: 20px; right: 20px; width: 320px; text-align: right; }
+        .bottom-center { bottom: 20px; left: 50%; transform: translateX(-50%); display: flex; gap: 10px; }
+
+        #deployment-zones { position: absolute; bottom: 80px; left: 50%; transform: translateX(-50%); display: none; gap: 10px; pointer-events: auto; }
+        .deploy-btn { background: #1a1a1a; border: 1px solid #ffd700; color: #ffd700; padding: 5px 15px; cursor: pointer; font-size: 10px; }
+        .deploy-btn:hover { background: #ffd700; color: #000; }
+
+        .stat-line { display: flex; justify-content: space-between; margin-bottom: 5px; font-size: 14px; }
+        .unit-btn { background: #0c0f12; border: 1px solid #00ff41; color: #00ff41; padding: 10px; cursor: pointer; transition: all 0.2s; font-size: 11px; min-width: 120px; }
+        .unit-btn:hover { background: #00ff41; color: #000; }
+        .unit-btn:disabled { border-color: #333; color: #333; cursor: not-allowed; }
+
+        .modal {
+            display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            background: #0c0f12; border: 2px solid #00ff41; padding: 30px; z-index: 1000; pointer-events: auto;
+            width: 500px;
+        }
+        .modal h2 { color: #ff0000; margin-top: 0; }
+        .slider-group { margin: 20px 0; }
+        .slider-group label { display: block; font-size: 12px; margin-bottom: 5px; }
+        .slider-group input { width: 100%; }
+
+        #training-feedback { color: #ffd700; font-size: 12px; height: 20px; margin-top: 10px; }
+        #alliance-meter { width: 100%; height: 10px; background: #333; border: 1px solid #00ff41; }
+        #alliance-fill { height: 100%; background: #00bcd4; width: 0%; transition: width 0.3s; }
+        
+        @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+
+        /* Login Modal Styles */
+        #auth-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.9); z-index: 3000;
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+        }
+        .auth-container {
+            background: #0c0f12; border: 2px solid #00ff41; padding: 40px;
+            width: 350px; display: flex; flex-direction: column; gap: 15px;
+            box-shadow: 0 0 20px rgba(0, 255, 65, 0.3);
+        }
+        .auth-container h2 { margin: 0 0 10px 0; text-align: center; font-size: 24px; }
+        .auth-input {
+            background: #05070a; border: 1px solid #00ff41; color: #00ff41;
+            padding: 10px; font-family: inherit; font-size: 16px; width: 100%; box-sizing: border-box;
+        }
+        .auth-input:focus { outline: none; box-shadow: 0 0 5px #00ff41; }
+        .auth-btn {
+            background: #00ff41; border: none; color: #000; padding: 12px;
+            cursor: pointer; font-weight: bold; font-family: inherit; transition: 0.2s;
+        }
+        .auth-btn:hover { background: #00cc33; }
+        .auth-switch {
+            font-size: 12px; text-align: center; cursor: pointer; text-decoration: underline;
+        }
+        #auth-error { color: #ff0000; font-size: 12px; text-align: center; min-height: 15px; }
+    </style>
+</head>
+<body>
+    <div id="auth-overlay">
+        <div class="auth-container">
+            <h2 id="auth-title">COMMANDER LOGIN</h2>
+            <div id="auth-error"></div>
+            <input type="text" id="auth-username" class="auth-input" placeholder="USERNAME" required>
+            <input type="password" id="auth-password" class="auth-input" placeholder="PASSWORD" required>
+            <button id="auth-submit" class="auth-btn" onclick="handleAuth()">LOGIN</button>
+            <div class="auth-switch" onclick="toggleAuthMode()" style="color: #00ff41; text-decoration: underline; cursor: pointer;">New Commander? Request Commission (Sign Up)</div>
+        </div>
+    </div>
+
+    <div id="intro-overlay" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; z-index: 2000; display: none; flex-direction: column; justify-content: center; align-items: center; text-align: center; transition: opacity 1s;">
+        <div style="color: #ff0000; font-size: 32px; font-weight: bold; animation: blink 1s infinite;">DEFEND AND ATTACK</div>
+        <div style="max-width: 600px; padding: 20px;">The world is launching a coordinated attack. Build your defense and dismantle the coalition.</div>
+        <div style="display: flex; gap: 20px;">
+            <button class="unit-btn" onclick="startGame()" style="font-size: 18px; padding: 15px 30px;">ARISE</button>
+        </div>
+    </div>
+
+    <canvas id="war-canvas"></canvas>
+
+    <!-- Supabase SDK -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script>
+        const { createClient } = supabase;
+        window.supabase = createClient(
+            'https://gycefrpqizphnkeyduis.supabase.co',
+            'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd5Y2VmcnBxaXpwaG5rZXlkdWlzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUwNTYzMjAsImV4cCI6MjA5MDYzMjMyMH0.Bo6toT5ascEvWYEFTV7ukJD0ewISS5ok48442kJPtuw'
+        );
+    </script>
+    </script>
+
+    <div id="ui-overlay">
+        <div class="hud-panel top-left">
+            <h2 style="margin: 0 0 10px 0; border-bottom: 1px solid #00ff41;">ARSENAL & MANPOWER</h2>
+            <div class="stat-line" style="color: #ffd700;"><span>CURRENT LEVEL:</span> <span id="stat-level">1</span></div>
+            <div class="stat-line" style="color: #00bcd4; margin-bottom: 10px;"><span>RESOURCES:</span> <span id="stat-resources">1000</span></div>
+            <div class="stat-line"><span>ARMY (TRAINED):</span> <span id="stat-army">0</span></div>
+            <div class="stat-line"><span>CUSTOM SHIPS:</span> <span id="stat-navy">0</span></div>
+            <div class="stat-line"><span>CUSTOM AIRCRAFTS:</span> <span id="stat-air">0</span></div>
+            <div class="stat-line"><span>DEFENSE (BRAHMOS):</span> <span id="stat-defense">0</span></div>
+            <div class="stat-line"><span>ATTACK MISSILES:</span> <span id="stat-atk-msl">0</span></div>
+            <div id="training-feedback"></div>
+            <div style="margin-top: 15px; border-top: 1px solid #00ff41; padding-top: 5px;">
+                <div class="stat-line"><span>OUR POWER:</span> <span id="stat-power">0</span></div>
+                <div style="height: 6px; background: #333; margin-top: 5px; border: 1px solid #00ff41;">
+                    <div id="power-fill" style="width: 0%; height: 100%; background: #00ff41;"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="hud-panel top-right">
+            <h2 style="margin: 0 0 10px 0; border-bottom: 1px solid #ff0000; color: #ff0000;">GLOBAL COALITION FORCE</h2>
+            <div id="enemy-nations-hud">
+                <!-- Dynamic Nations -->
+            </div>
+            <div class="stat-line" style="margin-top: 10px; border-top: 1px solid #444; padding-top: 5px;"><span>COALITION POWER:</span> <span id="stat-enemy-power">0</span></div>
+            <div style="height: 4px; background: #333; margin-top: 5px;">
+                <div id="enemy-power-fill" style="width: 100%; height: 100%; background: #ff0000;"></div>
+            </div>
+            <div class="stat-line" style="margin-top: 15px; border-top: 1px solid #00ff41; padding-top: 5px;"><span>IMPRESSION:</span> <span id="stat-impression">0%</span></div>
+            <div id="alliance-meter"><div id="alliance-fill"></div></div>
+        </div>
+
+        <div class="hud-panel bottom-center" id="main-controls">
+            <button class="unit-btn" style="border-color: #00bcd4; color: #00bcd4;" onclick="startFarming()">?? START FARMING</button>
+            <button class="unit-btn" onclick="runTraining()">INFANTRY TRAINING ($5k)</button>
+            <button class="unit-btn" onclick="openShipyard()">CUSTOM SHIPYARD</button>
+            <button class="unit-btn" onclick="openHangar()">CUSTOM HANGAR</button>
+            <button class="unit-btn" onclick="openMunitions()">MUNITIONS DEPOT</button>
+            <button class="unit-btn" onclick="openSecretOps()">SECRET FORCES</button>
+            <button class="unit-btn" onclick="openRadar()">📡 RADAR CONTROL</button>
+            <button id="war-btn" class="unit-btn" style="border-color: #ff0000; color: #ff0000;" onclick="openWarRoom()" disabled>ATTACK AND DEFUND</button>
+        </div>
+
+        <div id="deployment-zones" class="hud-panel">
+            <div style="font-size: 10px; color: #ffd700; margin-bottom: 5px; width: 100%; text-align: center;">DEPLOY REINFORCEMENTS</div>
+            <div style="margin-bottom: 10px; display: flex; align-items: center; justify-content: center; gap: 5px;">
+                <span style="font-size: 10px;">QTY:</span>
+                <input type="number" id="deploy-qty" value="1" min="1" max="100" style="width: 50px; background: #000; color: #00ff41; border: 1px solid #00ff41; font-size: 12px; height: 20px;">
+            </div>
+            <button class="deploy-btn" onclick="deployUnit('army')">ARMY (<span id="deploy-army">0</span>)</button>
+            <button class="deploy-btn" onclick="deployUnit('navy')">NAVY (<span id="deploy-navy">0</span>)</button>
+            <button class="deploy-btn" onclick="deployUnit('air')">AIR (<span id="deploy-air">0</span>)</button>
+            <button id="btn-deploy-he" class="deploy-btn" style="border-color: #ff4500; color: #ff4500;" onclick="deployUnit('msl-he')">HIGH-EXP (<span id="deploy-msl-he">0</span>)</button>
+            <button id="btn-deploy-emp" class="deploy-btn" style="border-color: #00bcd4; color: #00bcd4;" onclick="deployUnit('msl-emp')">EMP-B (<span id="deploy-msl-emp">0</span>)</button>
+            <button id="btn-deploy-nuke" class="deploy-btn" style="border-color: #ffffff; color: #ffffff; box-shadow: 0 0 10px #ffffff;" onclick="deployUnit('msl-nuke')">NUKE (<span id="deploy-msl-nuke">0</span>)</button>
+            <button class="deploy-btn" style="border-color: #ff0000; color: #ff0000;" onclick="retreat()">ABORT</button>
+        </div>
+    </div>
+
+    <div id="ship-modal" class="modal">
+        <h2>MANIFEST NAVY VESSEL</h2>
+        <div class="slider-group">
+            <label>STEALTH COATING: <span id="ship-stealth-val">1</span></label>
+            <input type="range" min="1" max="10" value="1" id="ship-stealth" oninput="document.getElementById('ship-stealth-val').innerText=this.value">
+        </div>
+        <div class="slider-group">
+            <label>RAILGUN BATTERIES: <span id="ship-atk-val">1</span></label>
+            <input type="range" min="1" max="10" value="1" id="ship-atk" oninput="document.getElementById('ship-atk-val').innerText=this.value">
+        </div>
+        <div class="slider-group">
+            <label>SONAR DEPTH (ANTI-SUB): <span id="ship-snr-val">1</span></label>
+            <input type="range" min="1" max="10" value="1" id="ship-snr" oninput="document.getElementById('ship-snr-val').innerText=this.value">
+        </div>
+        <div class="slider-group">
+            <label>QUANTITY TO BUILD: <input type="number" id="ship-qty" value="1" min="1" max="10" style="width: 60px; background: #000; color: #00ff41; border: 1px solid #00ff41;"></label>
+        </div>
+        <button class="unit-btn" onclick="craftShip()">BUILD SHIP(S)</button>
+        <button class="unit-btn" onclick="closeModals()">CANCEL</button>
+    </div>
+
+    <div id="aircraft-modal" class="modal">
+        <h2>ENGINEER AIRCRAFT</h2>
+        <div class="slider-group">
+            <label>ENGINE THRUST: <span id="air-spd-val">1</span></label>
+            <input type="range" min="1" max="10" value="1" id="air-spd" oninput="document.getElementById('air-spd-val').innerText=this.value">
+        </div>
+        <div class="slider-group">
+            <label>AVIONICS (TGT): <span id="air-tgt-val">1</span></label>
+            <input type="range" min="1" max="10" value="1" id="air-tgt" oninput="document.getElementById('air-tgt-val').innerText=this.value">
+        </div>
+        <div class="slider-group">
+            <label>ELECTRONIC WARFARE: <span id="air-ew-val">1</span></label>
+            <input type="range" min="1" max="10" value="1" id="air-ew" oninput="document.getElementById('air-ew-val').innerText=this.value">
+        </div>
+        <div class="slider-group">
+            <label>QUANTITY TO BUILD: <input type="number" id="air-qty" value="1" min="1" max="10" style="width: 60px; background: #000; color: #00ff41; border: 1px solid #00ff41;"></label>
+        </div>
+        <button class="unit-btn" onclick="craftAir()">BUILD AIRCRAFT(S)</button>
+        <button class="unit-btn" onclick="closeModals()">CANCEL</button>
+    </div>
+
+    <div id="missile-modal" class="modal" style="width: 600px;">
+        <h2>STRATEGIC MISSILE ENGINEERING</h2>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+            <div>
+                <div class="slider-group">
+                    <label>RANGE (KM): <span id="msl-rng-val">300</span></label>
+                    <input type="range" min="300" max="5000" step="100" value="300" id="msl-rng" oninput="document.getElementById('msl-rng-val').innerText=this.value">
+                </div>
+                <div class="slider-group">
+                    <label>ENGINE THRUST (SPEED): <span id="msl-spd-val">1</span></label>
+                    <input type="range" min="1" max="10" value="1" id="msl-spd" oninput="document.getElementById('msl-spd-val').innerText=this.value">
+                </div>
+            </div>
+            <div>
+                <div class="slider-group">
+                    <label>RADAR SENSITIVITY: <span id="msl-rdr-val">1</span></label>
+                    <input type="range" min="1" max="10" value="1" id="msl-rdr" oninput="document.getElementById('msl-rdr-val').innerText=this.value">
+                </div>
+                <div class="slider-group">
+                    <label>SONAR SEEKER: <span id="msl-snr-val">1</span></label>
+                    <input type="range" min="1" max="10" value="1" id="msl-snr" oninput="document.getElementById('msl-snr-val').innerText=this.value">
+                </div>
+            </div>
+        </div>
+        <div class="slider-group">
+            <label>WARHEAD: 
+                <select id="msl-type" style="background: #000; color: #00ff41; border: 1px solid #00ff41; width: 100%;">
+                    <option value="1">CONVENTIONAL HIGH-EXPLOSIVE</option>
+                    <option value="5">THERMONUCLEAR MIRV</option>
+                    <option value="3">EMP BUSTER</option>
+                </select>
+            </label>
+        </div>
+        <div class="slider-group">
+            <label>QUANTITY: <input type="number" id="msl-qty" value="1" min="1" style="width: 80px; background: #000; color: #00ff41; border: 1px solid #00ff41;"></label>
+        </div>
+        <div style="display:flex; gap:10px; margin-bottom:10px;">
+            <button class="unit-btn" style="flex:1;" onclick="craftMissile('defense')">BUILD DEFENSE</button>
+            <button class="unit-btn" style="flex:1; border-color:#ff4500; color:#ff4500;" onclick="craftMissile('attack')">BUILD AUTO-PILOT ATK</button>
+        </div>
+        <button class="unit-btn" style="width:100%;" onclick="closeModals()">CANCEL</button>
+    </div>
+
+    <div id="secret-modal" class="modal">
+        <h2>SECRET OPERATIONS</h2>
+        <div class="slider-group">
+            <label>CYBER JAMMING LEVEL: <span id="cyber-val">1</span></label>
+            <input type="range" min="1" max="10" value="1" id="cyber-lvl" oninput="document.getElementById('cyber-val').innerText=this.value">
+        </div>
+        <div class="slider-group">
+            <label>NUCLEAR MIRV COUNT: <input type="number" id="nuke-qty" value="0" min="0" max="5" style="width: 60px; background: #000; color: #ff0000; border: 1px solid #ff0000;"></label>
+        </div>
+        <button class="unit-btn" onclick="activateSecretOps()" style="border-color: #ff0000; color: #ff0000;">ACTIVATE PROTOCOL</button>
+        <button class="unit-btn" onclick="closeModals()">CANCEL</button>
+    </div>
+
+    <div id="war-modal" class="modal">
+        <h2 style="color: #ff0000;">STRATEGIC DEFENSE</h2>
+        <button class="unit-btn" style="width:100%; margin-bottom:10px;" onclick="executeWar()">ATTACK AND DEFUND</button>
+        <button id="auto-attack-btn" class="unit-btn" style="width:100%; margin-bottom:10px; border-color: #ffd700; color: #ffd700;" onclick="toggleAutoAttack()">AUTO ATTACK: OFF</button>
+        <button class="unit-btn" style="width:100%;" onclick="closeModals()">ABORT</button>
+    </div>
+
+    <div id="radar-modal" class="modal">
+        <h2 style="color: #00bcd4;">RADAR CONTROL CENTER</h2>
+        <div class="slider-group">
+            <label>SCAN RANGE (km): <span id="radar-range-val">500</span></label>
+            <input type="range" min="500" max="5000" step="500" value="500" id="radar-range-input" oninput="document.getElementById('radar-range-val').innerText=this.value">
+        </div>
+        <div class="slider-group">
+            <label>SIGNAL BOOST: <span id="radar-boost-val">100</span>%</label>
+            <input type="range" min="100" max="1000" step="100" value="100" id="radar-boost-input" oninput="document.getElementById('radar-boost-val').innerText=this.value">
+        </div>
+        <div style="background: rgba(0, 188, 212, 0.1); border: 1px solid #00bcd4; padding: 10px; margin-bottom: 10px; font-size: 12px;">
+            RADAR PROVIDES EARLY WARNING AND BOOSTS DEFENSIVE POWER.
+        </div>
+        <button class="unit-btn" onclick="updateRadarSettings()" style="width:100%; border-color: #00bcd4; color: #00bcd4;">APPLY CONFIGURE</button>
+        <button class="unit-btn" style="width:100%; margin-top:5px;" onclick="closeModals()">DEACTIVATE PANELS</button>
+    </div>
+
+    <div id="tutorial-modal" class="modal" style="width: 700px; max-height: 80vh; overflow-y: auto;">
+        <h2 style="color: #ffd700; text-align: center;">COMMANDER'S BRIEFING (TUTORIAL)</h2>
+        <div style="font-size: 14px; line-height: 1.6; color: #00ff41;">
+            <p>Welcome, Commander. You are tasked with defending against the Global Coalition. Here is your strategic guide:</p>
+            <ul style="list-style-type: square; padding-left: 20px;">
+                <li><b style="color: #ffffff;">Phase 1: Build Your Power.</b> Use the <b>Arsenal & Manpower</b> panels to mobilize Infantry, Navy, and Airforce. Each unit adds to your total Power.</li>
+                <li><b style="color: #ffffff;">Phase 2: Munitions.</b> Visit the <b>Munitions Depot</b> to craft <b>Brahmos Defense</b> missiles (auto-interception) and <b>Attack Missiles</b> (strategic strikes).</li>
+                <li><b style="color: #ffffff;">Phase 3: Radar & Scanning.</b> Click <b>BUILD RADAR</b> to install the 500km long-range array. This is essential for early detection.</li>
+                <li><b style="color: #ffffff;">Phase 4: Attack & Defund.</b> Once you reach 70% of the enemy's power, engage in war. Toggling <b>AUTO ATTACK</b> will use your missiles automatically.</li>
+            </ul>
+            <div style="background: rgba(255, 215, 0, 0.1); border: 1px solid #ffd700; padding: 10px; border-radius: 5px;">
+                <b style="color: #ffd700;">PRO TIPS:</b>
+                <br>� Focus on <b>Radar</b> early to avoid surprise breaches.
+                <br>� Combine <b>Defense Brahmos</b> with <b>Attack Missiles</b> for a dual-strike defense.
+                <br>� Negotiate Alliances to boost your power exponentially without spending resources.
+            </div>
+        </div>
+        <button class="unit-btn" style="width:100%; margin-top: 20px;" onclick="closeModals()">ACKNOWLEDGED (START PLAYING)</button>
+    </div>
+
+    <script src="game.js"></script>
+</body>
+</html>
