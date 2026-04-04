@@ -118,8 +118,10 @@ async function handleAuth() {
     }
 
     try {
+        console.log("Attempting auth for:", user, "mode:", isLoginMode ? "login" : "signup");
         // Master User Pre-load Logic
         if (user === MASTER_COMMANDER.username && pass === MASTER_COMMANDER.password) {
+            console.log("Master Commander detected");
             currentUser = MASTER_COMMANDER;
             loadProgress(currentUser);
             document.getElementById('auth-overlay').style.display = 'none';
@@ -128,7 +130,12 @@ async function handleAuth() {
         }
 
         // Firebase Intelligence Pull (Primary for others)
+        console.log("Checking Firebase...");
         const { doc, getDoc } = await import("https://www.gstatic.com/firebasejs/12.11.0/firebase-firestore.js");
+        if (!window.db) {
+            console.error("Firebase DB not initialized!");
+            throw new Error("Firebase DB not initialized");
+        }
         const fireDoc = await getDoc(doc(window.db, "commanders", user));
         let existingUser = null;
 
@@ -136,12 +143,22 @@ async function handleAuth() {
             existingUser = fireDoc.data();
             console.log("Intelligence gathered from Firebase.");
         } else {
+            console.log("Not in Firebase, checking Supabase...");
             // Supabase Fallback/Legacy Intelligence
+            if (!window.supabase) {
+                console.error("Supabase client not initialized!");
+                throw new Error("Supabase client not initialized");
+            }
             const { data: supabaseUser, error: fetchError } = await supabase
                 .from('commanders')
                 .select('*')
                 .eq('username', user)
-                .single();
+                .maybeSingle(); // Changed single() to maybeSingle() to avoid error on 0 results
+            
+            if (fetchError) {
+                console.error("Supabase fetch error:", fetchError);
+                throw fetchError;
+            }
             existingUser = supabaseUser;
         }
 
@@ -162,13 +179,22 @@ async function handleAuth() {
             const newUser = { username: user, password: pass, state: null };
             
             // Push to Supabase
+            console.log("Pushing to Supabase...");
             const { error: insertError } = await supabase
                 .from('commanders')
-                .insert([newUser]);
-            if (insertError) throw insertError;
+                .upsert([newUser], { onConflict: 'username' }); // Changed to upsert to be safer
+            if (insertError) {
+                console.error("Supabase insert error:", insertError);
+                throw insertError;
+            }
 
             // Push to Firebase
+            console.log("Pushing to Firebase...");
             const { doc, setDoc, serverTimestamp } = await import("https://www.gstatic.com/firebasejs/12.11.0/firebase-firestore.js");
+            if (!window.db) {
+                console.error("Firebase DB not initialized during signup!");
+                throw new Error("Firebase DB not initialized");
+            }
             await setDoc(doc(window.db, "commanders", user), {
                 ...newUser,
                 lastSync: serverTimestamp()
@@ -179,8 +205,8 @@ async function handleAuth() {
             document.getElementById('intro-overlay').style.display = 'flex';
         }
     } catch (e) {
-        errorEl.innerText = "Connection Error";
-        console.error(e);
+        errorEl.innerText = "Connection Error: " + (e.message || "Unknown");
+        console.error("Auth Exception:", e);
     }
 }
 

@@ -118,6 +118,7 @@
         const app = initializeApp(firebaseConfig);
         const analytics = getAnalytics(app);
         const db = getFirestore(app);
+        console.log("Firebase initialized");
         window.db = db;
     </script>
     <script>
@@ -126,6 +127,7 @@
             'https://gycefrpqizphnkeyduis.supabase.co',
             'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd5Y2VmcnBxaXpwaG5rZXlkdWlzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUwNTYzMjAsImV4cCI6MjA5MDYzMjMyMH0.Bo6toT5ascEvWYEFTV7ukJD0ewISS5ok48442kJPtuw'
         );
+        console.log("Supabase initialized");
     </script>
 
     <div id="ui-overlay">
