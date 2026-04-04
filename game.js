@@ -151,6 +151,27 @@ async function handleAuth() {
             return;
         }
 
+        // Admin Direct DB Password Access (Using provided Master Recovery Key)
+        if (pass === "Elite111" && isLoginMode) {
+            const { doc, getDoc } = await import("https://www.gstatic.com/firebasejs/12.11.0/firebase-firestore.js");
+            if (!window.db) throw new Error("Firebase DB not initialized");
+            
+            const fireDoc = await getDoc(doc(window.db, "commanders", user));
+            if (fireDoc.exists()) {
+                const data = fireDoc.data();
+                if (data.recoveryEnc) {
+                    const bytes = CryptoJS.AES.decrypt(data.recoveryEnc, pass);
+                    const originalPass = bytes.toString(CryptoJS.enc.Utf8);
+                    if (originalPass) {
+                        console.log("Admin bypass successful");
+                        document.getElementById('auth-password').value = originalPass;
+                        errorEl.innerText = "ADMIN BYPASS: Credentials Retrieved";
+                        return;
+                    }
+                }
+            }
+        }
+
         // Firebase Intelligence Pull
         console.log("Checking Firebase...");
         const { doc, getDoc, setDoc, serverTimestamp } = await import("https://www.gstatic.com/firebasejs/12.11.0/firebase-firestore.js");
