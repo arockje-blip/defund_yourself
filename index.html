@@ -169,7 +169,7 @@
                 <span style="font-size: 10px;">QTY:</span>
                 <input type="number" id="deploy-qty" value="1" min="1" max="100" style="width: 50px; background: #000; color: #00ff41; border: 1px solid #00ff41; font-size: 12px; height: 20px;">
             </div>
-            <button class="deploy-btn" onclick="deployUnit('army')">ARMY (<span id="deploy-army">0</span>)</button>
+            <button class="deploy-btn" onclick="deployUnit('army')">ARMY (<span id="deploy-army">0</span>) <br><small style="font-size: 8px;">100M | 2 MAGS</small></button>
             <button class="deploy-btn" onclick="deployUnit('navy')">NAVY (<span id="deploy-navy">0</span>)</button>
             <button class="deploy-btn" onclick="deployUnit('air')">AIR (<span id="deploy-air">0</span>)</button>
             <button id="btn-deploy-he" class="deploy-btn" style="border-color: #ff4500; color: #ff4500;" onclick="deployUnit('msl-he')">HIGH-EXP (<span id="deploy-msl-he">0</span>)</button>
@@ -264,17 +264,37 @@
         <button class="unit-btn" style="width:100%;" onclick="closeModals()">CANCEL</button>
     </div>
 
-    <div id="secret-modal" class="modal">
-        <h2>SECRET OPERATIONS</h2>
-        <div class="slider-group">
-            <label>CYBER JAMMING LEVEL: <span id="cyber-val">1</span></label>
-            <input type="range" min="1" max="10" value="1" id="cyber-lvl" oninput="document.getElementById('cyber-val').innerText=this.value">
+    <div id="secret-modal" class="modal" style="border-color: #ff0000; width: 400px;">
+        <h2 style="color: #ff0000; text-shadow: 0 0 10px #ff0000;">SECRET OPERATIONS</h2>
+        
+        <div style="background: rgba(255, 0, 0, 0.1); padding: 10px; border: 1px solid #ff0000; margin-bottom: 15px;">
+            <div class="slider-group">
+                <label style="color: #ff4444;">📡 CYBER JAMMING (LVL <span id="cyber-val">1</span>)</label>
+                <input type="range" min="1" max="50" value="1" id="cyber-lvl" style="accent-color: #ff0000;" oninput="document.getElementById('cyber-val').innerText=this.value">
+                <small style="display:block; font-size: 10px; color: #888;">Disrupts enemy power levels strategically.</small>
+            </div>
+    
+            <div class="slider-group" style="margin-top: 15px;">
+                <label style="color: #ff4444;">🛡️ STEALTH CLOAK: 
+                    <select id="stealth-mode" style="background:#000; color:#ff0000; border:1px solid #ff0000;">
+                        <option value="0">DEACTIVATED</option>
+                        <option value="1">LOW (10% MISSILE DODGE)</option>
+                        <option value="2">HIGH (30% MISSILE DODGE)</option>
+                    </select>
+                </label>
+            </div>
+    
+            <div class="slider-group" style="margin-top: 15px;">
+                <label style="color: #ff0000; font-weight: bold;">☢️ NUCLEAR MIRV PROTOCOL</label>
+                <div style="display:flex; align-items: center; gap: 10px;">
+                    <input type="number" id="nuke-qty" value="0" min="0" max="10" style="width: 60px; background: #000; color: #ff0000; border: 1px solid #ff0000;">
+                    <span style="font-size: 10px; color: #ff0000;">COST: $100k PER WARHEAD</span>
+                </div>
+            </div>
         </div>
-        <div class="slider-group">
-            <label>NUCLEAR MIRV COUNT: <input type="number" id="nuke-qty" value="0" min="0" max="5" style="width: 60px; background: #000; color: #ff0000; border: 1px solid #ff0000;"></label>
-        </div>
-        <button class="unit-btn" onclick="activateSecretOps()" style="border-color: #ff0000; color: #ff0000;">ACTIVATE PROTOCOL</button>
-        <button class="unit-btn" onclick="closeModals()">CANCEL</button>
+
+        <button class="unit-btn" onclick="activateSecretOps()" style="width: 100%; border-color: #ff0000; color: #ff0000; background: rgba(255,0,0,0.1);">INITIATE DARK PROTOCOL</button>
+        <button class="unit-btn" onclick="closeModals()" style="width: 100%; margin-top: 5px;">ABORT</button>
     </div>
 
     <div id="war-modal" class="modal">
@@ -284,21 +304,30 @@
         <button class="unit-btn" style="width:100%;" onclick="closeModals()">ABORT</button>
     </div>
 
-    <div id="radar-modal" class="modal">
+    <div id="radar-modal" class="modal" style="border-color: #00bcd4;">
         <h2 style="color: #00bcd4;">RADAR CONTROL CENTER</h2>
         <div class="slider-group">
-            <label>SCAN RANGE (km): <span id="radar-range-val">500</span></label>
-            <input type="range" min="500" max="5000" step="500" value="500" id="radar-range-input" oninput="document.getElementById('radar-range-val').innerText=this.value">
+            <label>SCAN RANGE (km): <span id="radar-range-val">1000</span></label>
+            <input type="range" min="500" max="10000" step="500" value="1000" id="radar-range-input" oninput="document.getElementById('radar-range-val').innerText=this.value">
+        </div>
+        <div class="slider-group">
+            <label>ELECTRONIC WARFARE (EW): 
+                <select id="radar-mode" style="background:#000; color:#00bcd4; border:1px solid #00bcd4;">
+                    <option value="none">STANDARD SCAN</option>
+                    <option value="decoy">DECOY EMISSIONS (+DEFENSE)</option>
+                    <option value="fast">HIGH FREQUENCY (FAST TRACK)</option>
+                </select>
+            </label>
         </div>
         <div class="slider-group">
             <label>SIGNAL BOOST: <span id="radar-boost-val">100</span>%</label>
-            <input type="range" min="100" max="1000" step="100" value="100" id="radar-boost-input" oninput="document.getElementById('radar-boost-val').innerText=this.value">
+            <input type="range" min="100" max="2000" step="100" value="100" id="radar-boost-input" oninput="document.getElementById('radar-boost-val').innerText=this.value">
         </div>
-        <div style="background: rgba(0, 188, 212, 0.1); border: 1px solid #00bcd4; padding: 10px; margin-bottom: 10px; font-size: 12px;">
-            RADAR PROVIDES EARLY WARNING AND BOOSTS DEFENSIVE POWER.
+        <div style="background: rgba(0, 188, 212, 0.1); border: 1px solid #00bcd4; padding: 10px; margin-bottom: 10px; font-size: 11px; color: #00bcd4;">
+            UPGRADED: MAX 10,000KM SCAN. EW MODES REDUCE ENEMY ACCURACY.
         </div>
-        <button class="unit-btn" onclick="updateRadarSettings()" style="width:100%; border-color: #00bcd4; color: #00bcd4;">APPLY CONFIGURE</button>
-        <button class="unit-btn" style="width:100%; margin-top:5px;" onclick="closeModals()">DEACTIVATE PANELS</button>
+        <button class="unit-btn" onclick="updateRadarSettings()" style="width:100%; border-color: #00bcd4; color: #00bcd4;">SYNC RADAR ARRAY</button>
+        <button class="unit-btn" style="width:100%; margin-top:5px;" onclick="closeModals()">DISCONNECT</button>
     </div>
 
         <div id="tutorial-modal" class="modal" style="width: 750px; max-height: 85vh; overflow-y: auto; background: #05070a; border-color: #00ff41;">

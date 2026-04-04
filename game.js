@@ -38,7 +38,8 @@ const gameState = {
     customMissiles: { range: 300, power: 1 },
     atkMissiles: [], // Array of objects
     defense: 0,
-    radarRange: 500,
+    radarRange: 500, // Range for logic (km)
+    radarVisualRadius: 250, // Screen pixels for radar limit UI
     radarActive: false,
     autoAttackActive: false,
     allianceImpression: 0, // 0 to 100
@@ -296,7 +297,11 @@ function resize() {
         gameState.enemies = [];
         for(let i=0; i<20; i++) {
             const angle = (i / 20) * Math.PI * 2;
-            gameState.enemies.push({ x: canvas.width/2 + Math.cos(angle)*350, y: canvas.height/2 + Math.sin(angle)*350 });
+            const screenRadius = 1000;
+            gameState.enemies.push({ 
+                x: canvas.width/2 + Math.cos(angle) * screenRadius, 
+                y: canvas.height/2 + Math.sin(angle) * screenRadius 
+            });
         }
     }
 }
@@ -460,14 +465,19 @@ function drawMap() {
 
     // Static Enemies (Strategic View)
     if (!gameState.warActive) {
-        // Draw Radar Range (500km)
+        // Draw Radar Range Limit (500km in visual scale)
         if (gameState.radarActive) {
             ctx.strokeStyle = 'rgba(0, 255, 65, 0.4)';
             ctx.setLineDash([10, 5]);
             ctx.beginPath();
-            ctx.arc(canvas.width/2, canvas.height/2, gameState.radarRange, 0, Math.PI*2);
+            ctx.arc(canvas.width/2, canvas.height/2, gameState.radarVisualRadius, 0, Math.PI*2);
             ctx.stroke();
             ctx.setLineDash([]);
+            
+            // Text indicator for radar range
+            ctx.fillStyle = '#00ff41';
+            ctx.font = '10px Courier New';
+            ctx.fillText("500KM RADAR BOUNDARY", canvas.width/2 - 50, canvas.height/2 - gameState.radarVisualRadius - 5);
         }
 
         gameState.enemies.forEach(e => {
@@ -481,6 +491,11 @@ function drawMap() {
             ctx.beginPath();
             ctx.arc(e.x, e.y, 10 + Math.sin(Date.now()/300)*5, 0, Math.PI*2);
             ctx.stroke();
+
+            // Distance label
+            ctx.fillStyle = '#ff0000';
+            ctx.font = '9px Courier New';
+            ctx.fillText("2000KM HOSTILE BASE", e.x - 40, e.y + 25);
         });
     }
 
@@ -488,8 +503,11 @@ function drawMap() {
     if (gameState.warActive && (gameState.radarActive || gameState.autoAttackActive)) {
         gameState.enemyAttacks.forEach(a => {
             const dist = Math.hypot(canvas.width/2 - a.x, canvas.height/2 - a.y);
+            // Translate visual pixels to km: radarRange(500) corresponds to radarVisualRadius(250)
+            const distInKm = dist * (gameState.radarRange / gameState.radarVisualRadius);
+
             // If radar is on and detects within 500km
-            if (gameState.radarActive && dist < gameState.radarRange && !a.targeted) {
+            if (gameState.radarActive && distInKm < gameState.radarRange && !a.targeted) {
                 // Launch 2 missiles: 1 Defense, 1 Attack
                 if (gameState.defense > 0) {
                     deployUnit('defense', a);
@@ -524,16 +542,30 @@ function createExplosion(x, y, color) {
     explosions.push({x, y, color, life: 20});
 }
 
+function createMuzzleFlash(x1, y1, x2, y2) {
+    explosions.push({x: x1, y: y1, color: '#ffff00', life: 5, isBullet: true, tx: x2, ty: y2});
+}
+
 // Reduced Explosion complexity
 function drawExplosions() {
     for (let i = explosions.length - 1; i >= 0; i--) {
         const ex = explosions[i];
-        ctx.strokeStyle = ex.color;
-        ctx.lineWidth = 1;
-        ctx.beginPath();
-        ctx.rect(ex.x - (20-ex.life), ex.y - (20-ex.life), (20-ex.life)*2, (20-ex.life)*2);
-        ctx.stroke();
-        ex.life -= 2; // Faster removal
+        if (ex.isBullet) {
+            ctx.strokeStyle = '#ffff00';
+            ctx.setLineDash([2, 4]);
+            ctx.beginPath();
+            ctx.moveTo(ex.x, ex.y);
+            ctx.lineTo(ex.x + (ex.tx - ex.x) * 0.2, ex.y + (ex.ty - ex.y) * 0.2);
+            ctx.stroke();
+            ctx.setLineDash([]);
+        } else {
+            ctx.strokeStyle = ex.color;
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.rect(ex.x - (20-ex.life), ex.y - (20-ex.life), (20-ex.life)*2, (20-ex.life)*2);
+            ctx.stroke();
+        }
+        ex.life -= 2; 
         if (ex.life <= 0) explosions.splice(i, 1);
     }
 }
@@ -641,13 +673,31 @@ function openSecretOps() { document.getElementById('secret-modal').style.display
 function activateSecretOps() {
     const cyber = parseInt(document.getElementById('cyber-lvl').value);
     const nuke = parseInt(document.getElementById('nuke-qty').value);
-    const addedSecret = (cyber + nuke * 50);
+    const stealth = parseInt(document.getElementById('stealth-mode').value);
+    const nukeCost = nuke * 100000;
+
+    if (gameState.resources < nukeCost) {
+        document.getElementById('training-feedback').innerText = "INSUFFICIENT FUNDS FOR NUCLEAR MIRV";
+        return;
+    }
     
-    gameState.units.secret += addedSecret;
-    gameState.enemyPower = Math.max(10000, gameState.enemyPower - (cyber * 5000));
+    gameState.resources -= nukeCost;
     
+    // Cyber attacks reduce enemy power exponentially but cost stability/resources
+    const enemyImpact = (cyber * 10000) + (nuke * 500000);
+    gameState.enemyPower = Math.max(0, gameState.enemyPower - enemyImpact);
+    
+    // Distribute reduction among nations
+    gameState.nations.forEach(n => {
+        n.power = Math.max(0, n.power - (enemyImpact / 4));
+    });
+
+    // Strategy stats
+    gameState.units.secret += (cyber + nuke * 100);
+    gameState.stealthLevel = stealth; // To be used in dodge logic
+
     const feedback = document.getElementById('training-feedback');
-    feedback.innerText = `SECRET PROTOCOL: CYBER AT LEVEL ${cyber}${nuke > 0 ? ' + NUCLEAR ACTIVE' : ''}`;
+    feedback.innerText = `PROTOCOL ACTIVE: Cyber ${cyber} | Mirvs ${nuke} | Stealth Lvl ${stealth}`;
     
     closeModals();
     updatePower();
@@ -681,13 +731,20 @@ function openRadar() { document.getElementById('radar-modal').style.display = 'b
 function updateRadarSettings() {
     const range = parseInt(document.getElementById('radar-range-input').value);
     const boost = parseInt(document.getElementById('radar-boost-input').value) / 100;
+    const mode = document.getElementById('radar-mode').value;
     
     gameState.radarRange = range;
     gameState.radarActive = true;
-    gameState.radarBoost = boost; // New multiplier for defensive power
+    gameState.radarBoost = boost; 
+    gameState.radarMode = mode;
+
+    // Adjust visual scaling based on range
+    // If range is 1000km, visual radius is 250px. If 5000km, it covers more but might need scaling.
+    // For now, let's make it fixed size relative to Engagement distance
+    gameState.radarVisualRadius = (range / 1000) * 250;
 
     const feedback = document.getElementById('training-feedback');
-    feedback.innerText = `RADAR UPDATED: ${range}KM RANGE. BOOST: ${boost * 100}%`;
+    feedback.innerText = `RADAR SYNC: ${range}KM | MODE: ${mode.toUpperCase()} | BOOST: ${boost * 100}%`;
     
     closeModals();
     updatePower();
@@ -902,7 +959,11 @@ function startGame() {
         gameState.enemies = []; // Clear old enemies
         for(let i=0; i<20; i++) {
             const angle = (i / 20) * Math.PI * 2;
-            gameState.enemies.push({ x: canvas.width/2 + Math.cos(angle)*350, y: canvas.height/2 + Math.sin(angle)*350 });
+            const screenRadius = 1000; // Visual distance representing 2000km
+            gameState.enemies.push({ 
+                x: canvas.width/2 + Math.cos(angle) * screenRadius, 
+                y: canvas.height/2 + Math.sin(angle) * screenRadius 
+            });
         }
         openTutorial(); // Show tutorial automatically after Arise
     }, 1000);
@@ -938,7 +999,8 @@ function spawnWave() {
     const count = 3 + Math.floor(Math.random() * 5);
     for(let i=0; i<count; i++) {
         const angle = Math.random() * Math.PI * 2;
-        const dist = Math.max(canvas.width, canvas.height) / 2;
+        // Start enemies much further out (Visual representative of 2000km)
+        const dist = 1000 + Math.random() * 500;
         gameState.enemyAttacks.push({
             x: canvas.width/2 + Math.cos(angle) * dist,
             y: canvas.height/2 + Math.sin(angle) * dist,
@@ -952,6 +1014,37 @@ function deployUnit(type, autoTarget = null) {
     const deployQty = autoTarget ? 1 : (parseInt(document.getElementById('deploy-qty').value) || 1);
     
     for (let q = 0; q < deployQty; q++) {
+        if (type === 'army') {
+            if (gameState.units.army <= 0) break;
+            gameState.units.army--;
+            
+            // Random deploy pos around center
+            const ang = Math.random() * Math.PI * 2;
+            const r = 50 + Math.random() * 50;
+            
+            // Assign target
+            let target = autoTarget;
+            if (!target) {
+                let minDist = 2000;
+                gameState.enemyAttacks.forEach(a => {
+                    const d = Math.hypot(canvas.width/2 - a.x, canvas.height/2 - a.y);
+                    if (d < minDist) { minDist = d; target = a; }
+                });
+            }
+
+            gameState.activeUnits.push({
+                type: 'infantry',
+                x: canvas.width/2 + Math.cos(ang) * r,
+                y: canvas.height/2 + Math.sin(ang) * r,
+                tx: target ? target.x : canvas.width/2,
+                ty: target ? target.y : canvas.height/2,
+                ammo: 12, // 2 Magazines of 6 bullets
+                lastFire: 0
+            });
+            updatePower();
+            continue;
+        }
+
         if (type === 'defense' || type === 'attack' || type.startsWith('msl-')) {
             let spec;
             if (type === 'defense') {
