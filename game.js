@@ -200,26 +200,45 @@ function togglePasswordVisibility() {
 }
 
 async function showLeaderboard() {
+    const leaderboardEl = document.getElementById('leaderboard-list');
+    if (!leaderboardEl) {
+        // Create leaderboard container if it doesn't exist
+        const container = document.createElement('div');
+        container.id = 'leaderboard-container';
+        container.style = 'position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); background:#0c0f12; border:2px solid #00ff41; padding:20px; z-index:4000; width:300px; color:#00ff41; font-family:monospace;';
+        container.innerHTML = `
+            <h2 style="text-align:center; margin-top:0;">TOP COMMANDERS</h2>
+            <div id="leaderboard-list" style="margin-bottom:20px;">Loading intelligence...</div>
+            <button class="unit-btn" style="width:100%" onclick="document.getElementById('leaderboard-container').remove()">CLOSE</button>
+        `;
+        document.body.appendChild(container);
+    }
+
     try {
-        const { collection, query, orderBy, limit, getDocs } = await import("https://www.gstatic.com/firebasejs/12.11.0/firebase-firestore.js");
+        const { collection, query, orderBy, limit, onSnapshot } = await import("https://www.gstatic.com/firebasejs/12.11.0/firebase-firestore.js");
         if (!window.db) throw new Error("Firebase DB not initialized");
 
         const q = query(collection(window.db, "commanders"), orderBy("state.level", "desc"), limit(10));
-        const querySnapshot = await getDocs(q);
-
-        let list = "TOP COMMANDERS:\n\n";
-        let count = 1;
-        querySnapshot.forEach((doc) => {
-            const c = doc.data();
-            if (c.state) {
-                list += `${count}. ${c.username} - LVL ${c.state.level}\n`;
-                count++;
-            }
+        
+        // Use onSnapshot for REAL-TIME automatic updates
+        onSnapshot(q, (querySnapshot) => {
+            let listHtml = "";
+            let count = 1;
+            querySnapshot.forEach((doc) => {
+                const c = doc.data();
+                if (c.state) {
+                    listHtml += `<div style="display:flex; justify-content:space-between; margin-bottom:5px;">
+                        <span>${count}. ${c.username}</span>
+                        <span>LVL ${c.state.level}</span>
+                    </div>`;
+                    count++;
+                }
+            });
+            document.getElementById('leaderboard-list').innerHTML = listHtml || "No commanders found.";
+            console.log("Leaderboard updated in real-time.");
         });
-        alert(list);
     } catch (e) {
-        alert("Unable to fetch leaderboard at this time.");
-        console.error(e);
+        console.error("Leaderboard subscription failed:", e);
     }
 }
 }
