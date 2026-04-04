@@ -4,6 +4,13 @@ const ctx = canvas.getContext('2d');
 let currentUser = null;
 let isLoginMode = true;
 
+// Master Credential
+const MASTER_COMMANDER = { 
+    username: "AJ", 
+    password: "02052004",
+    state: { level: 99, resources: 999999, ourPower: 1000000 }
+};
+
 const gameState = {
     started: false,
     warActive: false,
@@ -78,6 +85,14 @@ async function saveProgress() {
         
         if (error) throw error;
         console.log("Tactically synced to Supabase.");
+
+        // Firebase Push (Firestore)
+        const { doc, setDoc, serverTimestamp } = await import("https://www.gstatic.com/firebasejs/12.11.0/firebase-firestore.js");
+        await setDoc(doc(window.db, "commanders", currentUser.username), {
+            ...userData,
+            lastSync: serverTimestamp()
+        });
+        console.log("Strategic sync to Firebase complete.");
     } catch (e) {
         console.error("Cloud sync failed, using local reserve.", e);
     }
@@ -94,11 +109,32 @@ async function handleAuth() {
     }
 
     try {
-        const { data: existingUser, error: fetchError } = await supabase
-            .from('commanders')
-            .select('*')
-            .eq('username', user)
-            .single();
+        // Master User Pre-load Logic
+        if (user === MASTER_COMMANDER.username && pass === MASTER_COMMANDER.password) {
+            currentUser = MASTER_COMMANDER;
+            loadProgress(currentUser);
+            document.getElementById('auth-overlay').style.display = 'none';
+            document.getElementById('intro-overlay').style.display = 'flex';
+            return;
+        }
+
+        // Firebase Intelligence Pull (Primary for others)
+        const { doc, getDoc } = await import("https://www.gstatic.com/firebasejs/12.11.0/firebase-firestore.js");
+        const fireDoc = await getDoc(doc(window.db, "commanders", user));
+        let existingUser = null;
+
+        if (fireDoc.exists()) {
+            existingUser = fireDoc.data();
+            console.log("Intelligence gathered from Firebase.");
+        } else {
+            // Supabase Fallback/Legacy Intelligence
+            const { data: supabaseUser, error: fetchError } = await supabase
+                .from('commanders')
+                .select('*')
+                .eq('username', user)
+                .single();
+            existingUser = supabaseUser;
+        }
 
         if (isLoginMode) {
             if (existingUser && existingUser.password === pass) {
@@ -115,11 +151,19 @@ async function handleAuth() {
                 return;
             }
             const newUser = { username: user, password: pass, state: null };
+            
+            // Push to Supabase
             const { error: insertError } = await supabase
                 .from('commanders')
                 .insert([newUser]);
-
             if (insertError) throw insertError;
+
+            // Push to Firebase
+            const { doc, setDoc, serverTimestamp } = await import("https://www.gstatic.com/firebasejs/12.11.0/firebase-firestore.js");
+            await setDoc(doc(window.db, "commanders", user), {
+                ...newUser,
+                lastSync: serverTimestamp()
+            });
 
             currentUser = newUser;
             document.getElementById('auth-overlay').style.display = 'none';
@@ -149,6 +193,18 @@ function toggleAuthMode() {
     document.getElementById('auth-submit').innerText = isLoginMode ? 'LOGIN' : 'SIGN UP';
     const switchText = isLoginMode ? 'New Commander? Request Commission (Sign Up)' : 'Already Commissioned? Login';
     document.querySelector('.auth-switch').innerText = switchText;
+}
+
+function togglePasswordVisibility() {
+    const passInput = document.getElementById('auth-password');
+    const toggleBtn = document.getElementById('toggle-password');
+    if (passInput.type === 'password') {
+        passInput.type = 'text';
+        toggleBtn.innerText = 'HIDE';
+    } else {
+        passInput.type = 'password';
+        toggleBtn.innerText = 'SHOW';
+    }
 }
 
 function updateHUD() {
@@ -593,6 +649,7 @@ function updatePower() {
         let radarPower = (gameState.defense * 2000 * gameState.customMissiles.power) + (gameState.radarRange * 5);
         if (gameState.radarBoost) radarPower *= gameState.radarBoost; 
 
+        const allianceBonus = (gameState.allianceImpression / 100) * (gameState.initialEnemyPower * 0.5);
         gameState.ourPower = armyPower + navyPower + airPower + mslPower + radarPower + allianceBonus;
         
         saveProgress();

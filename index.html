@@ -70,14 +70,17 @@
 </head>
 <body>
     <div id="auth-overlay">
-        <div class="auth-container">
+        <form class="auth-container" onsubmit="event.preventDefault(); handleAuth();">
             <h2 id="auth-title">COMMANDER LOGIN</h2>
             <div id="auth-error"></div>
-            <input type="text" id="auth-username" class="auth-input" placeholder="USERNAME" required>
-            <input type="password" id="auth-password" class="auth-input" placeholder="PASSWORD" required>
-            <button id="auth-submit" class="auth-btn" onclick="handleAuth()">LOGIN</button>
+            <input type="text" id="auth-username" name="username" class="auth-input" placeholder="USERNAME" required autocomplete="username">
+            <div style="position: relative;">
+                <input type="password" id="auth-password" name="password" class="auth-input" placeholder="PASSWORD" required autocomplete="current-password">
+                <div id="toggle-password" onclick="togglePasswordVisibility()" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); cursor: pointer; color: #00ff41; font-size: 12px; pointer-events: auto; user-select: none;">SHOW</div>
+            </div>
+            <button type="submit" id="auth-submit" class="auth-btn">LOGIN</button>
             <div class="auth-switch" onclick="toggleAuthMode()" style="color: #00ff41; text-decoration: underline; cursor: pointer;">New Commander? Request Commission (Sign Up)</div>
-        </div>
+        </form>
     </div>
 
     <div id="intro-overlay" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; z-index: 2000; display: none; flex-direction: column; justify-content: center; align-items: center; text-align: center; transition: opacity 1s;">
@@ -92,13 +95,36 @@
 
     <!-- Supabase SDK -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script type="module">
+        // Import the functions you need from the SDKs you need
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-app.js";
+        import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-analytics.js";
+        import { getFirestore } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-firestore.js";
+
+        // Your web app's Firebase configuration
+        // For Firebase JS SDK v7.20.0 and later, measurementId is optional
+        const firebaseConfig = {
+            apiKey: "AIzaSyBqUVyhmn_PNYsalpJ0Q9cI27nIGjctH-U",
+            authDomain: "defund-yourself.firebaseapp.com",
+            projectId: "defund-yourself",
+            storageBucket: "defund-yourself.firebasestorage.app",
+            messagingSenderId: "975014973752",
+            appId: "1:975014973752:web:2dd6ecc7c20be2e39df1cd",
+            measurementId: "G-W4HBT6ZTQ9"
+        };
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const analytics = getAnalytics(app);
+        const db = getFirestore(app);
+        window.db = db;
+    </script>
     <script>
         const { createClient } = supabase;
         window.supabase = createClient(
             'https://gycefrpqizphnkeyduis.supabase.co',
             'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd5Y2VmcnBxaXpwaG5rZXlkdWlzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUwNTYzMjAsImV4cCI6MjA5MDYzMjMyMH0.Bo6toT5ascEvWYEFTV7ukJD0ewISS5ok48442kJPtuw'
         );
-    </script>
     </script>
 
     <div id="ui-overlay">
