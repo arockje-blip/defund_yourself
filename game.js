@@ -18,9 +18,9 @@ const MASTER_COMMANDER = {
     state: { level: 100, resources: 999999999, ourPower: Infinity }
 };
 
-// Scaling Formula for Power: 50k * (2^(level-1))
+// Scaling Formula for Power: 50k * (1.2^(level-1))
 function getScaledPower(level) {
-    return 50000 * Math.pow(2, level - 1);
+    return 50000 * Math.pow(1.2, level - 1);
 }
 
 const gameState = {
@@ -46,7 +46,7 @@ const gameState = {
     atkMissiles: [], // Array of objects
     defense: 0,
     radarRange: 500, // Range for logic (km)
-    radarVisualRadius: 500, // Screen pixels for radar limit UI
+    radarVisualRadius: 1000, // Screen pixels for radar limit UI
     radarActive: false,
     autoAttackActive: false,
     allianceImpression: 0, // 0 to 100
@@ -61,10 +61,10 @@ const gameState = {
     zoom: 0.5
 };
 
-// Troop Limit Logic: 10,000 at level 1, +100% (doubles) each level
+// Troop Limit Logic: 10,000 at level 1, +20% each level
 // Rule: Limit applies to Navy, Airforce, and Munitions (Missiles). Infantry and Secret Ops are exempt.
 function getMaxTroops() {
-    return 10000 * Math.pow(2, gameState.level - 1);
+    return 10000 * Math.pow(1.2, gameState.level - 1);
 }
 
 function getSpaceRemaining() {
@@ -578,11 +578,11 @@ function drawMap() {
             return;
         }
 
-        if (u.type === 'army') {
-            // INFANTRY UPGRADE: 500M range (1 pixel) and 3s reload
-            const rangePixels = 1; 
+        if (u.type === 'infantry') {
+            // INFANTRY UPGRADE: 500M gun range (approx 50px) and 3s reload
+            const rangePixels = 50; 
             let closestEnemy = null;
-            let minEDist = 1000;
+            let minEDist = 5000;
             gameState.enemyAttacks.forEach(a => {
                 const d = Math.hypot(u.x - a.x, u.y - a.y);
                 if (d < minEDist) { minEDist = d; closestEnemy = a; }
@@ -600,7 +600,7 @@ function drawMap() {
             } else if (closestEnemy && u.ammo > 0) {
                 const distToE = Math.hypot(u.x - closestEnemy.x, u.y - closestEnemy.y);
                 if (distToE < rangePixels) {
-                    // Within range: 500M
+                    // Within range: 500M (approx 50px)
                     if (Date.now() - (u.lastFire || 0) > 600) {
                         u.ammo--;
                         u.lastFire = Date.now();
@@ -611,10 +611,12 @@ function drawMap() {
                         damageEnemy(250);
                     }
                 } else {
+                    // Move toward enemy (Unlimited deployment range, but gun has limit)
                     u.x += (closestEnemy.x - u.x) * 0.05;
                     u.y += (closestEnemy.y - u.y) * 0.05;
                 }
             } else if (u.ammo <= 0) {
+                // Return to base when out of ammo
                 u.x += (canvas.width/2 - u.x) * 0.02;
                 u.y += (canvas.height/2 - u.y) * 0.02;
                 if (Math.hypot(u.x - canvas.width/2, u.y - canvas.height/2) < 20) {
@@ -981,7 +983,7 @@ function updateRadarSettings() {
     gameState.radarMode = mode;
 
     // Adjust visual scaling based on range
-    // If range is 1000km, visual radius is 250px. If 5000km, it covers more but might need scaling.
+    // If range is 2000km, visual radius is 500px.
     // For now, let's make it fixed size relative to Engagement distance
     gameState.radarVisualRadius = (range / 1000) * 250;
 

@@ -9,7 +9,7 @@
 ### 1. Resources & Power
 *   **Start Farming**: Your primary economic engine. Click to generate resources used to commission battalions and craft advanced munitions.
 *   **Total Power**: Your total defensive capability. You must exceed **70% of Coalition Power** to initiate a counter-strike.
-*   **Troop Capacity**: While Infantry is limitless, advanced Navy and Air units require strategic management of your "Space Remaining." This capacity doubles each level (starting at 10,000).
+*   **Troop Capacity**: While Infantry is limitless, advanced Navy and Air units require strategic management of your "Space Remaining." This capacity increases by **20%** each level (starting at 10,000).
 
 ### 2. Strategic Units
 *   🪖 **Infantry (Army)**: Long-range ground forces.
@@ -23,7 +23,7 @@
 ### 3. Munitions & Defense
 *   🚀 **Brahmos (Defense)**: Automatic interception missiles. Essential for stopping incoming projectiles. Use more for higher success rates.
 *   🎯 **Attack Missiles**: Strategic strikes (HE, EMP, NUKE) against Coalition power levels.
-*   📡 **Radar Control**: Scan up to **1000KM**. Toggle **Electronic Warfare (EW)** modes to boost defensive output.
+*   📡 **Radar Control**: Scan up to **2000KM**. Toggle **Electronic Warfare (EW)** modes to boost defensive output.
 
 ### 4. Secret Operations (Dark Protocol) ☢️
 High-stakes intervention tools:

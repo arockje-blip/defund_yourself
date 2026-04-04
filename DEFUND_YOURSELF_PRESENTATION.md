@@ -40,7 +40,7 @@ headingDivider: 2
 
 # 📡 RADAR & MUNITIONS
 
-- **Strategic Radar**: Scan up to **1000KM**.
+- **Strategic Radar**: Scan up to **2000KM**.
 - **Electronic Warfare**: Decoy emissions and high-frequency tracking.
 - **Brahmos (Defense)**: Automating the shield against incoming projectiles.
 - **Attack Missiles**: Dedicated strikes on nation power levels.
