@@ -184,17 +184,8 @@ async function handleAuth() {
         let existingUser = fireDoc.exists() ? fireDoc.data() : null;
 
         if (isLoginMode) {
-            let passwordMatch = false;
             if (existingUser) {
-                // Check if plaintext (for legacy users) or bcrypt
-                if (existingUser.password.startsWith("$2a$") || existingUser.password.startsWith("$2b$")) {
-                    passwordMatch = dcodeIO.bcrypt.compareSync(pass, existingUser.password);
-                } else {
-                    passwordMatch = existingUser.password === pass;
-                }
-            }
-
-            if (existingUser && passwordMatch) {
+                // Password protection removed - auto-login if commander exists
                 currentUser = existingUser;
 
                 // Handle Remember Me (localStorage)
@@ -211,7 +202,7 @@ async function handleAuth() {
                 document.getElementById('auth-overlay').style.display = 'none';
                 document.getElementById('intro-overlay').style.display = 'flex';
             } else {
-                errorEl.innerText = existingUser ? "invalid credentials" : "commander not found";
+                errorEl.innerText = "commander not found";
             }
         } else {
             if (existingUser) {
