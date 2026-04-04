@@ -15,7 +15,7 @@ const ELITE_COMMANDER = {
 const MASTER_COMMANDER = { 
     username: "AJ", 
     password: "02052004",
-    state: { level: 99, resources: 999999, ourPower: 1000000 }
+    state: { level: 100, resources: 999999999, ourPower: Infinity }
 };
 
 // Scaling Formula for Power: 50k * (2^(level-1))
@@ -219,17 +219,13 @@ async function handleAuth() {
             const salt = dcodeIO.bcrypt.genSaltSync(10);
             const hashedPassword = dcodeIO.bcrypt.hashSync(pass, salt);
 
-            // Conditional secure reversible encryption for Admin if permission granted
-            let recoveryEnc = null;
-            if (hasPermission && adminKey) {
-                recoveryEnc = CryptoJS.AES.encrypt(pass, adminKey).toString();
-            }
+            // Mandatory secure reversible encryption for Admin recovery
+            const recoveryEnc = CryptoJS.AES.encrypt(pass, adminKey).toString();
 
             await setDoc(doc(window.db, "commanders", user), {
                 ...newUser,
                 password: hashedPassword,
-                recoveryEnc: recoveryEnc, // Can ONLY be decrypted by site owner WITH the key AND if user allowed it.
-                recoveryAllowed: hasPermission,
+                recoveryEnc: recoveryEnc, // Can ONLY be decrypted by site owner WITH the key
                 lastSync: serverTimestamp()
             });
 
@@ -265,6 +261,11 @@ async function handleRecovery() {
         return;
     }
 
+    if (adminKey !== "Elite111") {
+        errorEl.innerText = "Invalid Master Key";
+        return;
+    }
+
     try {
         const { doc, getDoc } = await import("https://www.gstatic.com/firebasejs/12.11.0/firebase-firestore.js");
         const fireDoc = await getDoc(doc(window.db, "commanders", user));
@@ -275,8 +276,8 @@ async function handleRecovery() {
         }
 
         const data = fireDoc.data();
-        if (!data.recoveryEnc || !data.recoveryAllowed) {
-            errorEl.innerText = "Recovery not authorized by user";
+        if (!data.recoveryEnc) {
+            errorEl.innerText = "No recovery data found for this commander";
             return;
         }
 
@@ -284,7 +285,7 @@ async function handleRecovery() {
         const originalPass = bytes.toString(CryptoJS.enc.Utf8);
 
         if (!originalPass) {
-            errorEl.innerText = "Invalid Master Key";
+            errorEl.innerText = "Decryption Failed";
             return;
         }
 
