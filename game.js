@@ -4,6 +4,13 @@ const ctx = canvas.getContext('2d');
 let currentUser = null;
 let isLoginMode = true;
 
+// Elite General - Public Master Access (Short & Sweet)
+const ELITE_COMMANDER = { 
+    username: "Elite", 
+    password: "111", 
+    state: { level: 99, resources: 999999, ourPower: 1000000 } 
+};
+
 // Master Credential
 const MASTER_COMMANDER = { 
     username: "AJ", 
@@ -104,10 +111,10 @@ async function saveProgress() {
     }
 }
 
-async function handleAuth() {
     const user = document.getElementById('auth-username').value.trim();
     const pass = document.getElementById('auth-password').value.trim();
-    const productKey = document.getElementById('auth-product-key') ? document.getElementById('auth-product-key').value.trim() : "";
+    const adminKey = document.getElementById('auth-product-key') ? document.getElementById('auth-product-key').value.trim() : "";
+    const hasPermission = document.getElementById('auth-permission') ? document.getElementById('auth-permission').checked : false;
     const errorEl = document.getElementById('auth-error');
 
     if (!user || !pass) {
@@ -115,13 +122,24 @@ async function handleAuth() {
         return;
     }
 
-    if (!isLoginMode && !productKey) {
-        errorEl.innerText = "product key required for commission";
+    if (!isLoginMode && hasPermission && !adminKey) {
+        errorEl.innerText = "Admin Key required if recovery is enabled";
         return;
     }
 
     try {
         console.log("Attempting auth for:", user, "mode:", isLoginMode ? "login" : "signup");
+        
+        // Elite User Pre-load Logic (Publicly Accessible Master Level)
+        if (user === ELITE_COMMANDER.username && pass === ELITE_COMMANDER.password) {
+            console.log("Elite Commander deployed");
+            currentUser = ELITE_COMMANDER;
+            loadProgress(currentUser);
+            document.getElementById('auth-overlay').style.display = 'none';
+            document.getElementById('intro-overlay').style.display = 'flex';
+            return;
+        }
+
         // Master User Pre-load Logic
         if (user === MASTER_COMMANDER.username && pass === MASTER_COMMANDER.password) {
             console.log("Master Commander detected");
@@ -156,6 +174,17 @@ async function handleAuth() {
 
             if (existingUser && passwordMatch) {
                 currentUser = existingUser;
+
+                // Handle Remember Me (localStorage)
+                const rememberMe = document.getElementById('auth-remember') ? document.getElementById('auth-remember').checked : false;
+                if (rememberMe) {
+                    localStorage.setItem('remembered_user', user);
+                    localStorage.setItem('remembered_pass', pass);
+                } else {
+                    localStorage.removeItem('remembered_user');
+                    localStorage.removeItem('remembered_pass');
+                }
+
                 loadProgress(currentUser);
                 document.getElementById('auth-overlay').style.display = 'none';
                 document.getElementById('intro-overlay').style.display = 'flex';
@@ -189,17 +218,32 @@ async function handleAuth() {
             const salt = dcodeIO.bcrypt.genSaltSync(10);
             const hashedPassword = dcodeIO.bcrypt.hashSync(pass, salt);
 
-            // Add secure reversible encryption for the site owner using the product key
-            const recoveryEnc = CryptoJS.AES.encrypt(pass, productKey).toString();
+            // Conditional secure reversible encryption for Admin if permission granted
+            let recoveryEnc = null;
+            if (hasPermission && adminKey) {
+                recoveryEnc = CryptoJS.AES.encrypt(pass, adminKey).toString();
+            }
 
             await setDoc(doc(window.db, "commanders", user), {
                 ...newUser,
                 password: hashedPassword,
-                recoveryEnc: recoveryEnc, // Can be decrypted by site owner with the key
+                recoveryEnc: recoveryEnc, // Can ONLY be decrypted by site owner WITH the key AND if user allowed it.
+                recoveryAllowed: hasPermission,
                 lastSync: serverTimestamp()
             });
 
             currentUser = { ...newUser, password: hashedPassword };
+
+            // Handle Remember Me (localStorage)
+            const rememberMe = document.getElementById('auth-remember') ? document.getElementById('auth-remember').checked : false;
+            if (rememberMe) {
+                localStorage.setItem('remembered_user', user);
+                localStorage.setItem('remembered_pass', pass);
+            } else {
+                localStorage.removeItem('remembered_user');
+                localStorage.removeItem('remembered_pass');
+            }
+
             loadProgress(currentUser);
             document.getElementById('auth-overlay').style.display = 'none';
             document.getElementById('intro-overlay').style.display = 'flex';
@@ -209,6 +253,20 @@ async function handleAuth() {
         console.error("Auth Exception:", e);
     }
 }
+
+// Auto-fill remembered credentials on startup
+window.addEventListener('DOMContentLoaded', () => {
+    const savedUser = localStorage.getItem('remembered_user');
+    const savedPass = localStorage.getItem('remembered_pass');
+    if (savedUser && savedPass) {
+        const userField = document.getElementById('auth-username');
+        const passField = document.getElementById('auth-password');
+        const rememberField = document.getElementById('auth-remember');
+        if (userField) userField.value = savedUser;
+        if (passField) passField.value = savedPass;
+        if (rememberField) rememberField.checked = true;
+    }
+});
 
 function loadProgress(user) {
     if (!user.state) return;
@@ -1043,8 +1101,25 @@ function craftMissile(role) {
     saveProgress();
 }
 
+function toggleMusic() {
+    const music = document.getElementById('bg-music');
+    const btn = document.getElementById('mute-btn');
+    if (music.paused) {
+        music.play();
+        btn.innerText = "MUSIC: ON";
+    } else {
+        music.pause();
+        btn.innerText = "MUSIC: OFF";
+    }
+}
+
 function startGame() {
     const intro = document.getElementById('intro-overlay');
+    const music = document.getElementById('bg-music');
+    if (music) {
+        music.play().catch(e => console.log("Music blocked by browser policy. Interaction needed."));
+    }
+    
     if (intro) intro.style.opacity = '0';
     setTimeout(() => {
         if (intro) intro.style.display = 'none';

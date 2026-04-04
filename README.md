@@ -33,7 +33,11 @@ High-stakes intervention tools:
 
 ---
 
-## 🌎 CLOUD FEATURES
+## 🌎 CLOUD & SECURITY FEATURES
+*   **Secure Authentication**: **Bcrypt-hashed** passwords for all commanders.
+*   **Admin Recovery Protocol**: Optional **AES-256 encrypted recovery** with the secret **Elite111** key.
+*   **Persistent Login**: "Remember Me" functionality saves credentials for quick deployment.
+*   **Elite General Access**: Use `Elite` / `111` for a public master-level account (Level 99).
 *   **Real-time Leaderboard**: Powered by Firebase Firestore. Compete with commanders globally in real-time.
 *   **Master Admin Support**: Special credentials for advanced testing and level-99 power scaling.
 *   **Cloud Sync**: Automatic progress saving via Firebase to ensure your rank is never lost.
