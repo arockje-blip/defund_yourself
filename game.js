@@ -148,21 +148,36 @@ async function handleAuth() {
                 errorEl.innerText = "commander name taken";
                 return;
             }
-            const newUser = { username: user, password: pass, state: null };
+            const newUser = {
+                username: user,
+                password: pass,
+                state: {
+                    level: 1,
+                    resources: 1000,
+                    units: { army: 0, navy: 0, air: 0, secret: 0 },
+                    defense: 0,
+                    ourPower: 0,
+                    nations: gameState.nations
+                }
+            };
             
             // Push to Firebase
-            console.log("Pushing to Firebase...");
+            console.log("Pushing new commander to Firebase...");
+            const { doc, setDoc, serverTimestamp } = await import("https://www.gstatic.com/firebasejs/12.11.0/firebase-firestore.js");
+            if (!window.db) throw new Error("Firebase DB not initialized");
+
             await setDoc(doc(window.db, "commanders", user), {
                 ...newUser,
                 lastSync: serverTimestamp()
             });
 
             currentUser = newUser;
+            loadProgress(currentUser);
             document.getElementById('auth-overlay').style.display = 'none';
             document.getElementById('intro-overlay').style.display = 'flex';
         }
     } catch (e) {
-        errorEl.innerText = "Connection Error: " + (e.message || "Unknown");
+        errorEl.innerText = "Auth Error: " + (e.message || "Unknown");
         console.error("Auth Exception:", e);
     }
 }
@@ -240,7 +255,6 @@ async function showLeaderboard() {
     } catch (e) {
         console.error("Leaderboard subscription failed:", e);
     }
-}
 }
 
 function updateHUD() {
