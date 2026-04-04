@@ -509,12 +509,12 @@ function drawMap() {
     }
 
     // Our Border (Center)
-    ctx.strokeStyle = gameState.warActive ? '#ff0000' : '#00ff41';
+    ctx.strokeStyle = gameState.warActive ? '#ffff00' : '#00ff41';
     ctx.lineWidth = 2;
     ctx.beginPath();
     ctx.ellipse(canvas.width/2, canvas.height/2, 120, 80, 0, 0, Math.PI*2);
     ctx.stroke();
-    ctx.fillStyle = gameState.health < 30 ? 'rgba(255, 0, 0, 0.1)' : 'rgba(0, 255, 65, 0.05)';
+    ctx.fillStyle = gameState.health < 30 ? 'rgba(255, 165, 0, 0.1)' : 'rgba(0, 255, 65, 0.05)';
     ctx.fill();
 
     // Defense Brahmos Range
@@ -636,7 +636,7 @@ function drawMap() {
 
             const ammoPct = u.ammo / 12;
             ctx.fillStyle = '#000'; ctx.fillRect(u.x - 5, u.y - 8, 10, 2);
-            ctx.fillStyle = ammoPct > 0.5 ? '#00ff00' : (ammoPct > 0 ? '#ffff00' : '#ff0000');
+            ctx.fillStyle = ammoPct > 0.5 ? '#00ff00' : (ammoPct > 0 ? '#ffff00' : '#ffa500');
             ctx.fillRect(u.x - 5, u.y - 8, 10 * ammoPct, 2);
             return;
         }
