@@ -626,6 +626,14 @@ function drawMap() {
             // Draw Soldier
             ctx.fillStyle = '#90ee90';
             ctx.beginPath(); ctx.arc(u.x, u.y, 4, 0, Math.PI * 2); ctx.fill();
+            
+            // Draw Unit Label
+            ctx.fillStyle = '#90ee90';
+            ctx.font = 'bold 10px Courier New';
+            ctx.textAlign = 'center';
+            ctx.fillText(u.type.toUpperCase(), u.x, u.y - 12);
+            ctx.textAlign = 'start';
+
             const ammoPct = u.ammo / 12;
             ctx.fillStyle = '#000'; ctx.fillRect(u.x - 5, u.y - 8, 10, 2);
             ctx.fillStyle = ammoPct > 0.5 ? '#00ff00' : (ammoPct > 0 ? '#ffff00' : '#ff0000');
@@ -637,11 +645,23 @@ function drawMap() {
     });
 
     // Enemy Attacks (War Animation)
-            gameState.enemyAttacks.forEach((a, index) => {
+    gameState.enemyAttacks.forEach((a, index) => {
         ctx.fillStyle = '#ff0000';
         ctx.beginPath(); ctx.arc(a.x, a.y, 4, 0, Math.PI*2); ctx.fill();
         
-        // Find nearest active unit (troop) to attack first
+        // Enemy Label
+        ctx.fillStyle = '#ff0000';
+        ctx.font = 'bold 10px Courier New';
+        ctx.textAlign = 'center';
+        ctx.fillText("HOSTILE", a.x, a.y - 12);
+        ctx.textAlign = 'start';
+        
+        // Target Line (Trace where it's attacking)
+        ctx.strokeStyle = 'rgba(255, 0, 0, 0.2)';
+        ctx.setLineDash([2, 5]);
+        ctx.beginPath();
+        ctx.moveTo(a.x, a.y);
+        
         let targetTroop = null;
         let minTroopDist = 1000;
         gameState.activeUnits.forEach(u => {
@@ -649,11 +669,14 @@ function drawMap() {
             if (d < minTroopDist) { minTroopDist = d; targetTroop = u; }
         });
 
-        // Target Logic: If a troop is within 300px, move to and attack troop. Otherwise, target base.
         let tx = canvas.width/2, ty = canvas.height/2;
         if (targetTroop && minTroopDist < 300) {
             tx = targetTroop.x; ty = targetTroop.y;
         }
+        
+        ctx.lineTo(tx, ty);
+        ctx.stroke();
+        ctx.setLineDash([]);
 
         const angle = Math.atan2(ty - a.y, tx - a.x);
         a.x += Math.cos(angle) * a.speed;
