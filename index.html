@@ -94,8 +94,6 @@
 
     <canvas id="war-canvas"></canvas>
 
-    <!-- Supabase SDK -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script type="module">
         // Import the functions you need from the SDKs you need
         import { initializeApp } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-app.js";
@@ -103,7 +101,6 @@
         import { getFirestore } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-firestore.js";
 
         // Your web app's Firebase configuration
-        // For Firebase JS SDK v7.20.0 and later, measurementId is optional
         const firebaseConfig = {
             apiKey: "AIzaSyBqUVyhmn_PNYsalpJ0Q9cI27nIGjctH-U",
             authDomain: "defund-yourself.firebaseapp.com",
@@ -120,14 +117,6 @@
         const db = getFirestore(app);
         console.log("Firebase initialized");
         window.db = db;
-    </script>
-    <script>
-        const { createClient } = supabase;
-        window.supabase = createClient(
-            'https://gycefrpqizphnkeyduis.supabase.co',
-            'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd5Y2VmcnBxaXpwaG5rZXlkdWlzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUwNTYzMjAsImV4cCI6MjA5MDYzMjMyMH0.Bo6toT5ascEvWYEFTV7ukJD0ewISS5ok48442kJPtuw'
-        );
-        console.log("Supabase initialized");
     </script>
 
     <div id="ui-overlay">

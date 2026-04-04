@@ -75,7 +75,7 @@ async function saveProgress() {
     
     const userData = {
         username: currentUser.username,
-        password: currentUser.password, // Still using local password logic for simplicity
+        password: currentUser.password,
         state: {
             level: gameState.level,
             resources: gameState.resources,
@@ -83,20 +83,14 @@ async function saveProgress() {
             defense: gameState.defense,
             ourPower: gameState.ourPower,
             nations: gameState.nations
-        },
-        lastSync: new Date().toISOString()
+        }
     };
     
     try {
-        const { error } = await supabase
-            .from('commanders')
-            .upsert(userData, { onConflict: 'username' });
-        
-        if (error) throw error;
-        console.log("Tactically synced to Supabase.");
-
-        // Firebase Push (Firestore)
+        // Firebase Cloud Sync
         const { doc, setDoc, serverTimestamp } = await import("https://www.gstatic.com/firebasejs/12.11.0/firebase-firestore.js");
+        if (!window.db) throw new Error("Firebase DB not initialized");
+
         await setDoc(doc(window.db, "commanders", currentUser.username), {
             ...userData,
             lastSync: serverTimestamp()
@@ -129,38 +123,16 @@ async function handleAuth() {
             return;
         }
 
-        // Firebase Intelligence Pull (Primary for others)
+        // Firebase Intelligence Pull
         console.log("Checking Firebase...");
-        const { doc, getDoc } = await import("https://www.gstatic.com/firebasejs/12.11.0/firebase-firestore.js");
+        const { doc, getDoc, setDoc, serverTimestamp } = await import("https://www.gstatic.com/firebasejs/12.11.0/firebase-firestore.js");
         if (!window.db) {
             console.error("Firebase DB not initialized!");
             throw new Error("Firebase DB not initialized");
         }
+        
         const fireDoc = await getDoc(doc(window.db, "commanders", user));
-        let existingUser = null;
-
-        if (fireDoc.exists()) {
-            existingUser = fireDoc.data();
-            console.log("Intelligence gathered from Firebase.");
-        } else {
-            console.log("Not in Firebase, checking Supabase...");
-            // Supabase Fallback/Legacy Intelligence
-            if (!window.supabase) {
-                console.error("Supabase client not initialized!");
-                throw new Error("Supabase client not initialized");
-            }
-            const { data: supabaseUser, error: fetchError } = await supabase
-                .from('commanders')
-                .select('*')
-                .eq('username', user)
-                .maybeSingle(); // Changed single() to maybeSingle() to avoid error on 0 results
-            
-            if (fetchError) {
-                console.error("Supabase fetch error:", fetchError);
-                throw fetchError;
-            }
-            existingUser = supabaseUser;
-        }
+        let existingUser = fireDoc.exists() ? fireDoc.data() : null;
 
         if (isLoginMode) {
             if (existingUser && existingUser.password === pass) {
@@ -169,7 +141,7 @@ async function handleAuth() {
                 document.getElementById('auth-overlay').style.display = 'none';
                 document.getElementById('intro-overlay').style.display = 'flex';
             } else {
-                errorEl.innerText = "invalid credentials";
+                errorEl.innerText = existingUser ? "invalid credentials" : "commander not found";
             }
         } else {
             if (existingUser) {
@@ -178,23 +150,8 @@ async function handleAuth() {
             }
             const newUser = { username: user, password: pass, state: null };
             
-            // Push to Supabase
-            console.log("Pushing to Supabase...");
-            const { error: insertError } = await supabase
-                .from('commanders')
-                .upsert([newUser], { onConflict: 'username' }); // Changed to upsert to be safer
-            if (insertError) {
-                console.error("Supabase insert error:", insertError);
-                throw insertError;
-            }
-
             // Push to Firebase
             console.log("Pushing to Firebase...");
-            const { doc, setDoc, serverTimestamp } = await import("https://www.gstatic.com/firebasejs/12.11.0/firebase-firestore.js");
-            if (!window.db) {
-                console.error("Firebase DB not initialized during signup!");
-                throw new Error("Firebase DB not initialized");
-            }
             await setDoc(doc(window.db, "commanders", user), {
                 ...newUser,
                 lastSync: serverTimestamp()
@@ -244,23 +201,27 @@ function togglePasswordVisibility() {
 
 async function showLeaderboard() {
     try {
-        const { data, error } = await supabase
-            .from('commanders')
-            .select('username, state')
-            .order('state->level', { ascending: false })
-            .limit(10);
+        const { collection, query, orderBy, limit, getDocs } = await import("https://www.gstatic.com/firebasejs/12.11.0/firebase-firestore.js");
+        if (!window.db) throw new Error("Firebase DB not initialized");
 
-        if (error) throw error;
+        const q = query(collection(window.db, "commanders"), orderBy("state.level", "desc"), limit(10));
+        const querySnapshot = await getDocs(q);
 
         let list = "TOP COMMANDERS:\n\n";
-        data.forEach((c, i) => {
-            list += `${i + 1}. ${c.username} - LVL ${c.state.level}\n`;
+        let count = 1;
+        querySnapshot.forEach((doc) => {
+            const c = doc.data();
+            if (c.state) {
+                list += `${count}. ${c.username} - LVL ${c.state.level}\n`;
+                count++;
+            }
         });
         alert(list);
     } catch (e) {
         alert("Unable to fetch leaderboard at this time.");
         console.error(e);
     }
+}
 }
 
 function updateHUD() {
