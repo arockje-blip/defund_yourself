@@ -11,14 +11,19 @@ const MASTER_COMMANDER = {
     state: { level: 99, resources: 999999, ourPower: 1000000 }
 };
 
+// Scaling Formula for Power: 50k * (2^(level-1))
+function getScaledPower(level) {
+    return 50000 * Math.pow(2, level - 1);
+}
+
 const gameState = {
     started: false,
     warActive: false,
     level: 1,
     resources: 1000,
     isFarming: false,
-    ourPower: 0,
-    enemyPower: 2500,
+    ourPower: Infinity,
+    enemyPower: 50000,
     initialEnemyPower: 50000,
     nations: [
         { name: 'USA', power: 20000, max: 20000, active: true },
@@ -48,10 +53,14 @@ const gameState = {
     zoom: 1
 };
 
-// Troop Limit Logic: 30,000 at level 1, +100% (doubles) each level
+// Troop Limit Logic: 10,000 at level 1, +100% (doubles) each level
 // Rule: Limit applies to Navy, Airforce, and Munitions (Missiles). Infantry and Secret Ops are exempt.
 function getMaxTroops() {
-    return 30000 * Math.pow(2, gameState.level - 1);
+    return 10000 * Math.pow(2, gameState.level - 1);
+}
+
+function getSpaceRemaining() {
+    return getMaxTroops() - getLimitedCurrentTroops();
 }
 
 function getLimitedCurrentTroops() {
@@ -207,6 +216,27 @@ function togglePasswordVisibility() {
     }
 }
 
+async function showLeaderboard() {
+    try {
+        const { data, error } = await supabase
+            .from('commanders')
+            .select('username, state')
+            .order('state->level', { ascending: false })
+            .limit(10);
+
+        if (error) throw error;
+
+        let list = "TOP COMMANDERS:\n\n";
+        data.forEach((c, i) => {
+            list += `${i + 1}. ${c.username} - LVL ${c.state.level}\n`;
+        });
+        alert(list);
+    } catch (e) {
+        alert("Unable to fetch leaderboard at this time.");
+        console.error(e);
+    }
+}
+
 function updateHUD() {
     document.getElementById('stat-level').innerText = gameState.level;
     document.getElementById('stat-resources').innerText = Math.floor(gameState.resources);
@@ -214,7 +244,8 @@ function updateHUD() {
     document.getElementById('stat-navy').innerText = gameState.units.navy;
     document.getElementById('stat-air').innerText = gameState.units.air;
     document.getElementById('stat-defense').innerText = gameState.defense;
-    document.getElementById('stat-power').innerText = Math.floor(gameState.ourPower);
+    document.getElementById('stat-power').innerText = gameState.ourPower === Infinity ? 'UNLIMITED' : Math.floor(gameState.ourPower);
+    document.getElementById('stat-space').innerText = getSpaceRemaining();
     // ... existing update HUD logic usually goes here, adding this to ensure start values are right
 }
 
@@ -640,13 +671,16 @@ function updatePower() {
     if (gameState._updatingPower) return;
     gameState._updatingPower = true;
     
+    // Power Multiplier: Double for each level (2 to the power of level-1)
+    const powerMultiplier = Math.pow(2, gameState.level - 1);
+    
     requestAnimationFrame(() => {
-        const armyPower = gameState.units.army * 600;
-        const navyPower = gameState.customShips.reduce((acc, s) => acc + (s.stealth * 500) + (s.atk * 800) + (s.snr * 300), 0);
-        const airPower = gameState.customAircraft.reduce((acc, a) => acc + (a.spd * 400) + (a.tgt * 900) + (a.ew * 600), 0);
-        const mslPower = gameState.atkMissiles.reduce((acc, m) => acc + (m.power * 2000) + (m.speed * 500), 0);
+        const armyPower = (gameState.units.army * 600) * powerMultiplier;
+        const navyPower = (gameState.customShips.reduce((acc, s) => acc + (s.stealth * 500) + (s.atk * 800) + (s.snr * 300), 0)) * powerMultiplier;
+        const airPower = (gameState.customAircraft.reduce((acc, a) => acc + (a.spd * 400) + (a.tgt * 900) + (a.ew * 600), 0)) * powerMultiplier;
+        const mslPower = (gameState.atkMissiles.reduce((acc, m) => acc + (m.power * 2000) + (m.speed * 500), 0)) * powerMultiplier;
         
-        let radarPower = (gameState.defense * 2000 * gameState.customMissiles.power) + (gameState.radarRange * 5);
+        let radarPower = ((gameState.defense * 2000 * gameState.customMissiles.power) + (gameState.radarRange * 5)) * powerMultiplier;
         if (gameState.radarBoost) radarPower *= gameState.radarBoost; 
 
         const allianceBonus = (gameState.allianceImpression / 100) * (gameState.initialEnemyPower * 0.5);
@@ -974,14 +1008,8 @@ function endGame(victory) {
     
     if (victory) {
         reportHtml += `<h1>LEVEL ${gameState.level} COMPLETE: YOU STAND</h1>`;
-        if (gameState.level < 10) {
-            reportHtml += `<p style="color: #ffd700;">PROCEEDING TO LEVEL ${gameState.level + 1}</p>`;
-            reportHtml += `<button class="unit-btn" onclick="nextLevel()" style="margin-top:20px; width:240px; border:2px solid #00ff41;">COMMENCE NEXT LEVEL</button>`;
-        } else {
-            reportHtml += `<h1 style="color: gold;">CAMPAIGN COMPLETE</h1>`;
-            reportHtml += `<p>THE COALITION HAS BEEN DISMANTLED PERMANENTLY.</p>`;
-            reportHtml += `<button class="unit-btn" onclick="location.reload()" style="margin-top:20px; width:240px; border:2px solid #00ff41;">RESTART CAMPAIGN</button>`;
-        }
+        reportHtml += `<p style="color: #ffd700;">PROCEEDING TO LEVEL ${gameState.level + 1}</p>`;
+        reportHtml += `<button class="unit-btn" onclick="nextLevel()" style="margin-top:20px; width:240px; border:2px solid #00ff41;">COMMENCE NEXT LEVEL</button>`;
     } else {
         reportHtml += `<h1>DEFEAT: LEVEL ${gameState.level} BREACHED</h1>`;
         reportHtml += `<button class="unit-btn" onclick="location.reload()" style="margin-top:20px; width:240px; border:2px solid #00ff41;">RETRY FROM LEVEL 1</button>`;
@@ -998,10 +1026,22 @@ function nextLevel() {
     gameState.level++;
     gameState.resources += 25000 * gameState.level; // Massive bonus for completion
     
-    // Scale enemies for next level (100% Increase - Power Multiplier: 2)
-    gameState.initialEnemyPower *= 2;
+    // Scale power for the new level: 50k * (2^(level-1))
+    const newPower = getScaledPower(gameState.level);
+    gameState.initialEnemyPower = newPower;
+    gameState.enemyPower = newPower;
+    gameState.ourPower = Infinity;
+
     gameState.nations.forEach(n => {
-        n.max *= 2;
+        // Distribute new total power proportionally among nations (using original distribution ratios)
+        // Ratio logic: USA (20/50), UK (5/50), PAK (12/50), CHINA (13/50)
+        let ratio = 1;
+        if (n.name === 'USA') ratio = 0.4;
+        else if (n.name === 'UK') ratio = 0.1;
+        else if (n.name === 'PAK') ratio = 0.24;
+        else if (n.name === 'CHINA') ratio = 0.26;
+        
+        n.max = newPower * ratio;
         n.power = n.max;
         n.active = true;
     });
