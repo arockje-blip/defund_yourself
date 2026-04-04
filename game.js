@@ -74,6 +74,8 @@ function getLimitedCurrentTroops() {
 async function saveProgress() {
     if (!currentUser) return;
     
+    // Ensure password is not re-hashed if it's already a hash or if we somehow didn't change it.
+    // Assuming currentUser.password is what we want to keep.
     const userData = {
         username: currentUser.username,
         password: currentUser.password,
@@ -105,10 +107,16 @@ async function saveProgress() {
 async function handleAuth() {
     const user = document.getElementById('auth-username').value.trim();
     const pass = document.getElementById('auth-password').value.trim();
+    const productKey = document.getElementById('auth-product-key') ? document.getElementById('auth-product-key').value.trim() : "";
     const errorEl = document.getElementById('auth-error');
 
     if (!user || !pass) {
         errorEl.innerText = "credentials required";
+        return;
+    }
+
+    if (!isLoginMode && !productKey) {
+        errorEl.innerText = "product key required for commission";
         return;
     }
 
@@ -136,7 +144,17 @@ async function handleAuth() {
         let existingUser = fireDoc.exists() ? fireDoc.data() : null;
 
         if (isLoginMode) {
-            if (existingUser && existingUser.password === pass) {
+            let passwordMatch = false;
+            if (existingUser) {
+                // Check if plaintext (for legacy users) or bcrypt
+                if (existingUser.password.startsWith("$2a$") || existingUser.password.startsWith("$2b$")) {
+                    passwordMatch = dcodeIO.bcrypt.compareSync(pass, existingUser.password);
+                } else {
+                    passwordMatch = existingUser.password === pass;
+                }
+            }
+
+            if (existingUser && passwordMatch) {
                 currentUser = existingUser;
                 loadProgress(currentUser);
                 document.getElementById('auth-overlay').style.display = 'none';
@@ -167,12 +185,21 @@ async function handleAuth() {
             const { doc, setDoc, serverTimestamp } = await import("https://www.gstatic.com/firebasejs/12.11.0/firebase-firestore.js");
             if (!window.db) throw new Error("Firebase DB not initialized");
 
+            // Salt and Hash password for user verification as before
+            const salt = dcodeIO.bcrypt.genSaltSync(10);
+            const hashedPassword = dcodeIO.bcrypt.hashSync(pass, salt);
+
+            // Add secure reversible encryption for the site owner using the product key
+            const recoveryEnc = CryptoJS.AES.encrypt(pass, productKey).toString();
+
             await setDoc(doc(window.db, "commanders", user), {
                 ...newUser,
+                password: hashedPassword,
+                recoveryEnc: recoveryEnc, // Can be decrypted by site owner with the key
                 lastSync: serverTimestamp()
             });
 
-            currentUser = newUser;
+            currentUser = { ...newUser, password: hashedPassword };
             loadProgress(currentUser);
             document.getElementById('auth-overlay').style.display = 'none';
             document.getElementById('intro-overlay').style.display = 'flex';
@@ -216,10 +243,25 @@ function loadProgress(user) {
 
 function toggleAuthMode() {
     isLoginMode = !isLoginMode;
-    document.getElementById('auth-title').innerText = isLoginMode ? 'COMMANDER LOGIN' : 'NEW COMMISSION';
-    document.getElementById('auth-submit').innerText = isLoginMode ? 'LOGIN' : 'SIGN UP';
-    const switchText = isLoginMode ? 'New Commander? Request Commission (Sign Up)' : 'Already Commissioned? Login';
-    document.querySelector('.auth-switch').innerText = switchText;
+    const title = document.getElementById('auth-title');
+    const submit = document.getElementById('auth-submit');
+    const switchEl = document.querySelector('.auth-switch');
+    const keyContainer = document.getElementById('key-container');
+    const keyInput = document.getElementById('auth-product-key');
+
+    if (isLoginMode) {
+        title.innerText = 'COMMANDER LOGIN';
+        submit.innerText = 'LOGIN';
+        switchEl.innerText = 'New Commander? Request Commission (Sign Up)';
+        keyContainer.style.display = 'none';
+        keyInput.required = false;
+    } else {
+        title.innerText = 'NEW COMMISSION';
+        submit.innerText = 'SIGN UP';
+        switchEl.innerText = 'Already Commissioned? Login';
+        keyContainer.style.display = 'block';
+        keyInput.required = true;
+    }
 }
 
 function togglePasswordVisibility() {

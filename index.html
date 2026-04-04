@@ -4,6 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Defend Yourself: World of Attacks</title>
+    <!-- Add Bcrypt library for client-side password hashing -->
+    <script src="https://cdn.jsdelivr.net/npm/bcryptjs@2.4.3/dist/bcrypt.min.js"></script>
+    <!-- Add CryptoJS for Symmetric Encryption/Decryption using a Product Key -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
     <style>
         body { margin: 0; padding: 0; background-color: #0c0f12; font-family: 'Consolas', Courier, monospace; overflow: hidden; color: #00ff41; }
         #war-canvas { display: block; background-color: #05070a; width: 100vw; height: 100vh; }
@@ -77,6 +81,10 @@
             <div style="position: relative;">
                 <input type="password" id="auth-password" name="password" class="auth-input" placeholder="PASSWORD" required autocomplete="current-password">
                 <div id="toggle-password" onclick="togglePasswordVisibility()" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); cursor: pointer; color: #00ff41; font-size: 12px; pointer-events: auto; user-select: none;">SHOW</div>
+            </div>
+            <div id="key-container" style="display: none;">
+                <input type="password" id="auth-product-key" name="product-key" class="auth-input" placeholder="PRODUCT KEY (FOR COMMISSIONS ONLY)">
+                <div style="font-size: 10px; color: #ffd700; margin-top: 5px;">Required for new commission authorization.</div>
             </div>
             <button type="submit" id="auth-submit" class="auth-btn">LOGIN</button>
             <div class="auth-switch" onclick="toggleAuthMode()" style="color: #00ff41; text-decoration: underline; cursor: pointer;">New Commander? Request Commission (Sign Up)</div>
