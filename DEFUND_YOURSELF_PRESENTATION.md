@@ -31,7 +31,7 @@ headingDivider: 2
 
 # 🪖 INFANTRY SPECIALIZATION
 
-- **Extended Range**: **500km** Long-range engagement.
+- **Close-quarters**: **500M** Precision engagement.
 - **Weapon System**: 12 Bullets (2 Magazines of 6).
 - **Lethality**: 1 Bullet = 1 Kill.
 - **Vulnerability**: **3s Reload Pause**. Stationary and one-shot breakable during reloading.
@@ -40,7 +40,7 @@ headingDivider: 2
 
 # 📡 RADAR & MUNITIONS
 
-- **Strategic Radar**: Scan up to **10,000KM**.
+- **Strategic Radar**: Scan up to **1000KM**.
 - **Electronic Warfare**: Decoy emissions and high-frequency tracking.
 - **Brahmos (Defense)**: Automating the shield against incoming projectiles.
 - **Attack Missiles**: Dedicated strikes on nation power levels.
@@ -65,9 +65,9 @@ headingDivider: 2
 
 # 🚀 ENDING THE WAR
 
-- **Engagement Distance**: Hostile bases detected at **2000KM**.
+- **Engagement Distance**: Hostile detections up to **1000KM**.
 - **The Counter-Strike**: Toggling **AUTO ATTACK** for synchronized missile volleys.
-- **Victory Condition**: Completely defunding all four coalition nations.
+- **Victory Condition**: Completely defunding all four coalition nations or surviving the breach.
 
 ---
 

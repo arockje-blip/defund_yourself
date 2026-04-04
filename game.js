@@ -38,8 +38,8 @@ const gameState = {
     customMissiles: { range: 300, power: 1 },
     atkMissiles: [], // Array of objects
     defense: 0,
-    radarRange: 500, // Range for logic (km)
-    radarVisualRadius: 250, // Screen pixels for radar limit UI
+    radarRange: 1000, // Range for logic (km)
+    radarVisualRadius: 500, // Screen pixels for radar limit UI
     radarActive: false,
     autoAttackActive: false,
     allianceImpression: 0, // 0 to 100
@@ -412,8 +412,8 @@ function drawMap() {
         }
 
         if (u.type === 'army') {
-            // INFANTRY UPGRADE: 500KM range (250 pixels) and 3s reload
-            const rangePixels = 250; 
+            // INFANTRY UPGRADE: 500M range (1 pixel) and 3s reload
+            const rangePixels = 1; 
             let closestEnemy = null;
             let minEDist = 1000;
             gameState.enemyAttacks.forEach(a => {
@@ -433,7 +433,7 @@ function drawMap() {
             } else if (closestEnemy && u.ammo > 0) {
                 const distToE = Math.hypot(u.x - closestEnemy.x, u.y - closestEnemy.y);
                 if (distToE < rangePixels) {
-                    // Within upgraded range: 500KM
+                    // Within range: 500M
                     if (Date.now() - (u.lastFire || 0) > 600) {
                         u.ammo--;
                         u.lastFire = Date.now();
@@ -509,42 +509,13 @@ function drawMap() {
         if (distToBase < 100) {
             gameState.enemyAttacks.splice(index, 1);
             gameState.health -= 5;
-        }
-    });
-
-        // Target Logic: If a troop is within 300px, move to and attack troop. Otherwise, target base.
-        let tx = canvas.width/2, ty = canvas.height/2;
-        if (targetTroop && minTroopDist < 300) {
-            tx = targetTroop.x; ty = targetTroop.y;
-        }
-
-        const angle = Math.atan2(ty - a.y, tx - a.x);
-        a.x += Math.cos(angle) * a.speed;
-        a.y += Math.sin(angle) * a.speed;
-
-        // Check Hit Troop
-        if (targetTroop && minTroopDist < 15) {
-            // RELOAD VULNERABILITY: If reloading (6 bullets left or just fired mag), 1 hit = DEAD.
-            const isReloading = (targetTroop.ammo === 6 || (Date.now() - targetTroop.lastFire > 600));
-            if (isReloading) {
-                const troopIdx = gameState.activeUnits.indexOf(targetTroop);
-                if (troopIdx > -1) gameState.activeUnits.splice(troopIdx, 1);
-                createExplosion(a.x, a.y, '#ff0000');
-                gameState.enemyAttacks.splice(index, 1);
-                return;
-            }
-        }
-
-        const distToBase = Math.hypot(canvas.width/2 - a.x, canvas.height/2 - a.y);
-        if (distToBase < 100) {
-            gameState.enemyAttacks.splice(index, 1);
-            gameState.health -= 5;
+            if (gameState.health <= 0) endGame(false);
         }
     });
 
     // Static Enemies (Strategic View)
     if (!gameState.warActive) {
-        // Draw Radar Range Limit (500km in visual scale)
+        // Draw Radar Range Limit (1000km in visual scale)
         if (gameState.radarActive) {
             ctx.strokeStyle = 'rgba(0, 255, 65, 0.4)';
             ctx.setLineDash([10, 5]);
@@ -556,7 +527,7 @@ function drawMap() {
             // Text indicator for radar range
             ctx.fillStyle = '#00ff41';
             ctx.font = '10px Courier New';
-            ctx.fillText("500KM RADAR BOUNDARY", canvas.width/2 - 50, canvas.height/2 - gameState.radarVisualRadius - 5);
+            ctx.fillText("1000KM RADAR BOUNDARY", canvas.width/2 - 50, canvas.height/2 - gameState.radarVisualRadius - 5);
         }
 
         gameState.enemies.forEach(e => {
@@ -582,10 +553,10 @@ function drawMap() {
     if (gameState.warActive && (gameState.radarActive || gameState.autoAttackActive)) {
         gameState.enemyAttacks.forEach(a => {
             const dist = Math.hypot(canvas.width/2 - a.x, canvas.height/2 - a.y);
-            // Translate visual pixels to km: radarRange(500) corresponds to radarVisualRadius(250)
+            // Translate visual pixels to km: radarRange(1000) corresponds to radarVisualRadius(500)
             const distInKm = dist * (gameState.radarRange / gameState.radarVisualRadius);
 
-            // If radar is on and detects within 500km
+            // If radar is on and detects within 1000km
             if (gameState.radarActive && distInKm < gameState.radarRange && !a.targeted) {
                 // Launch 2 missiles: 1 Defense, 1 Attack
                 if (gameState.defense > 0) {
@@ -883,6 +854,7 @@ function updatePower() {
                 </div>`;
         });
         gameState.enemyPower = currentTotalEnemy;
+        if (gameState.warActive && gameState.enemyPower <= 0) endGame(true);
         const enemyNationsHud = document.getElementById('enemy-nations-hud');
         if (enemyNationsHud) enemyNationsHud.innerHTML = enemyHudHtml;
         

@@ -4,8 +4,8 @@ $content = Get-Content $path -Raw
 # 1. Add Infantry Vulnerability to the general Troop logic
 $troopLogic = @'
         if (u.type === 'army') {
-            // INFANTRY UPGRADE: 500KM range (250 pixels) and 3s reload
-            const rangePixels = 250; // Visual radius for 500KM
+            // INFANTRY UPGRADE: 500M range (1 pixel) and 3s reload
+            const rangePixels = 1; // Visual radius for 500M
             let closestEnemy = null;
             let minEDist = 1000;
             gameState.enemyAttacks.forEach(a => {
@@ -25,7 +25,7 @@ $troopLogic = @'
                     ctx.font = "8px Courier New";
                     ctx.fillText("RELOADING...", u.x - 20, u.y - 12);
                 } else if (minEDist < rangePixels) {
-                    // Within firing range: 500KM
+                    // Within firing range: 500M
                     if (Date.now() - (u.lastFire || 0) > 600) {
                         u.ammo--;
                         u.lastFire = Date.now();
