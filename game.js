@@ -111,6 +111,7 @@ async function saveProgress() {
     }
 }
 
+async function handleAuth() {
     const user = document.getElementById('auth-username').value.trim();
     const pass = document.getElementById('auth-password').value.trim();
     const adminKey = document.getElementById('auth-product-key') ? document.getElementById('auth-product-key').value.trim() : "";
@@ -254,6 +255,47 @@ async function saveProgress() {
     }
 }
 
+async function handleRecovery() {
+    const user = document.getElementById('auth-username').value.trim();
+    const adminKey = document.getElementById('auth-product-key') ? document.getElementById('auth-product-key').value.trim() : "";
+    const errorEl = document.getElementById('auth-error');
+
+    if (!user || !adminKey) {
+        errorEl.innerText = "Username & Master Key (Elite111) required";
+        return;
+    }
+
+    try {
+        const { doc, getDoc } = await import("https://www.gstatic.com/firebasejs/12.11.0/firebase-firestore.js");
+        const fireDoc = await getDoc(doc(window.db, "commanders", user));
+        
+        if (!fireDoc.exists()) {
+            errorEl.innerText = "Commander record not found";
+            return;
+        }
+
+        const data = fireDoc.data();
+        if (!data.recoveryEnc || !data.recoveryAllowed) {
+            errorEl.innerText = "Recovery not authorized by user";
+            return;
+        }
+
+        const bytes = CryptoJS.AES.decrypt(data.recoveryEnc, adminKey);
+        const originalPass = bytes.toString(CryptoJS.enc.Utf8);
+
+        if (!originalPass) {
+            errorEl.innerText = "Invalid Master Key";
+            return;
+        }
+
+        alert(`STRATEGIC RECOVERY COMPLETE\nCommander: ${user}\nPassword: ${originalPass}`);
+        document.getElementById('auth-password').value = originalPass;
+        errorEl.innerText = "Password recovered into field";
+    } catch (e) {
+        errorEl.innerText = "Recovery failed: Key mismatch";
+    }
+}
+
 // Auto-fill remembered credentials on startup
 window.addEventListener('DOMContentLoaded', () => {
     const savedUser = localStorage.getItem('remembered_user');
@@ -303,6 +345,7 @@ function toggleAuthMode() {
     isLoginMode = !isLoginMode;
     const title = document.getElementById('auth-title');
     const submit = document.getElementById('auth-submit');
+    const recover = document.getElementById('auth-recover');
     const switchEl = document.querySelector('.auth-switch');
     const keyContainer = document.getElementById('key-container');
     const keyInput = document.getElementById('auth-product-key');
@@ -310,12 +353,14 @@ function toggleAuthMode() {
     if (isLoginMode) {
         title.innerText = 'COMMANDER LOGIN';
         submit.innerText = 'LOGIN';
+        recover.style.display = 'block';
         switchEl.innerText = 'New Commander? Request Commission (Sign Up)';
         keyContainer.style.display = 'none';
         keyInput.required = false;
     } else {
         title.innerText = 'NEW COMMISSION';
         submit.innerText = 'SIGN UP';
+        recover.style.display = 'none';
         switchEl.innerText = 'Already Commissioned? Login';
         keyContainer.style.display = 'block';
         keyInput.required = true;
