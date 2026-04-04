@@ -45,7 +45,7 @@ const gameState = {
     customMissiles: { range: 300, power: 1 },
     atkMissiles: [], // Array of objects
     defense: 0,
-    radarRange: 1000, // Range for logic (km)
+    radarRange: 500, // Range for logic (km)
     radarVisualRadius: 500, // Screen pixels for radar limit UI
     radarActive: false,
     autoAttackActive: false,

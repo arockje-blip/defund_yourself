@@ -23,7 +23,7 @@
 ### 3. Munitions & Defense
 *   🚀 **Brahmos (Defense)**: Automatic interception missiles. Essential for stopping incoming projectiles. Use more for higher success rates.
 *   🎯 **Attack Missiles**: Strategic strikes (HE, EMP, NUKE) against Coalition power levels.
-*   📡 **Radar Control**: Scan up to **10,000KM**. Toggle **Electronic Warfare (EW)** modes to boost defensive output.
+*   📡 **Radar Control**: Scan up to **1000KM**. Toggle **Electronic Warfare (EW)** modes to boost defensive output.
 
 ### 4. Secret Operations (Dark Protocol) ☢️
 High-stakes intervention tools:
