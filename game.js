@@ -184,8 +184,17 @@ async function handleAuth() {
         let existingUser = fireDoc.exists() ? fireDoc.data() : null;
 
         if (isLoginMode) {
+            let passwordMatch = false;
             if (existingUser) {
-                // Password protection removed - auto-login if commander exists
+                // Check if plaintext (for legacy users) or bcrypt
+                if (existingUser.password.startsWith("$2a$") || existingUser.password.startsWith("$2b$")) {
+                    passwordMatch = dcodeIO.bcrypt.compareSync(pass, existingUser.password);
+                } else {
+                    passwordMatch = existingUser.password === pass;
+                }
+            }
+
+            if (existingUser && passwordMatch) {
                 currentUser = existingUser;
 
                 // Handle Remember Me (localStorage)
@@ -202,7 +211,7 @@ async function handleAuth() {
                 document.getElementById('auth-overlay').style.display = 'none';
                 document.getElementById('intro-overlay').style.display = 'flex';
             } else {
-                errorEl.innerText = "commander not found";
+                errorEl.innerText = existingUser ? "invalid credentials" : "commander not found";
             }
         } else {
             if (existingUser) {
@@ -1173,11 +1182,28 @@ function toggleMusic() {
     }
 }
 
+// Ensure music starts on page load/interaction if allowed
+window.addEventListener('click', () => {
+    const music = document.getElementById('bg-music');
+    if (music && music.paused && !gameState.started) {
+        music.play().then(() => {
+            const btn = document.getElementById('mute-btn');
+            if (btn) btn.innerText = "MUSIC: ON";
+        }).catch(() => {});
+    }
+}, { once: true });
+
 function startGame() {
     const intro = document.getElementById('intro-overlay');
     const music = document.getElementById('bg-music');
+    const muteBtn = document.getElementById('mute-btn');
     if (music) {
-        music.play().catch(e => console.log("Music blocked by browser policy. Interaction needed."));
+        music.play().then(() => {
+            if (muteBtn) muteBtn.innerText = "MUSIC: ON";
+        }).catch(e => {
+            console.log("Music blocked by browser policy. Interaction needed.");
+            if (muteBtn) muteBtn.innerText = "MUSIC: OFF";
+        });
     }
     
     if (intro) intro.style.opacity = '0';
