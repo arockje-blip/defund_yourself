@@ -55,14 +55,21 @@ headingDivider: 2
 
 ---
 
-# ☁️ CLOUD INTELLIGENCE & SECURITY
+# ☁️ CLOUD DATA & SYNC
 
 - **Firebase Firestore**: Real-time global leaderboards and data persistence.
-- **Elite Defense**: **Bcrypt password hashing** ensures user keys are unreadable.
+- **Dynamic Scaling**: Global nation power scales exponentially with player level.
+- **Real-time Sync**: Battle results synchronized across all commanders instantly.
+- **Progress Persistence**: Automatic cloud saving ensures your rank is never lost.
+
+---
+
+# 🛡️ SYSTEM SECURITY
+
+- **Elite Defense**: **Bcrypt password hashing** ensures user keys are unreadable even in DB.
 - **Admin Recovery**: Optional **AES-256 encrypted recovery** with the secret **Elite111** key.
 - **Commander Login**: "Remember Me" functionality with credentials persistence.
-- **Elite General Access**: The **Elite111** master-level public account (Level 99).
-- **Dynamic Scaling**: Global nation power scales exponentially with player level.
+- **Elite General Access**: The **Elite111** master-level public account (User: **Elite** / Pass: **111**).
 
 ---
 
