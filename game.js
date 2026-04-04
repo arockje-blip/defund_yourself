@@ -1,4 +1,4 @@
-﻿const canvas = document.getElementById('war-canvas');
+const canvas = document.getElementById('war-canvas');
 const ctx = canvas.getContext('2d');
 
 let currentUser = null;
@@ -411,55 +411,134 @@ function drawMap() {
             return;
         }
 
-        ctx.fillStyle = u.type === 'army' ? '#ffd700' : u.type === 'navy' ? '#00bcd4' : '#ffffff';
-        ctx.beginPath();
-        ctx.arc(u.x, u.y, 5, 0, Math.PI*2);
-        ctx.fill();
-        
-        // Move towards nearest enemy attack
-        let target = null;
-        let minDist = 1000;
-        gameState.enemyAttacks.forEach(a => {
-            const d = Math.hypot(u.x - a.x, u.y - a.y);
-            if (d < minDist) { minDist = d; target = a; }
-        });
+        if (u.type === 'army') {
+            // INFANTRY UPGRADE: 500KM range (250 pixels) and 3s reload
+            const rangePixels = 250; 
+            let closestEnemy = null;
+            let minEDist = 1000;
+            gameState.enemyAttacks.forEach(a => {
+                const d = Math.hypot(u.x - a.x, u.y - a.y);
+                if (d < minEDist) { minEDist = d; closestEnemy = a; }
+            });
 
-        if (target) {
-            u.x += (target.x - u.x) * 0.05;
-            u.y += (target.y - u.y) * 0.05;
-            if (minDist < 10) {
-                // Intercepted
-                gameState.enemyAttacks = gameState.enemyAttacks.filter(a => a !== target);
-                gameState.activeUnits.splice(index, 1);
-                createExplosion(u.x, u.y, '#00ff41');
-                damageEnemy(1500); // Reduce nation capacity on intercept
+            if (u.ammo === undefined) u.ammo = 12;
+
+            const isReloading = (u.ammo === 6 && u.lastFire && Date.now() - u.lastFire < 3000);
+            
+            if (isReloading) {
+                // STOPPED WHILE LOADING
+                ctx.fillStyle = "#ff0000";
+                ctx.font = "8px Courier New";
+                ctx.fillText("RELOADING...", u.x - 20, u.y - 12);
+            } else if (closestEnemy && u.ammo > 0) {
+                const distToE = Math.hypot(u.x - closestEnemy.x, u.y - closestEnemy.y);
+                if (distToE < rangePixels) {
+                    // Within upgraded range: 500KM
+                    if (Date.now() - (u.lastFire || 0) > 600) {
+                        u.ammo--;
+                        u.lastFire = Date.now();
+                        createMuzzleFlash(u.x, u.y, closestEnemy.x, closestEnemy.y);
+                        
+                        const eIdx = gameState.enemyAttacks.indexOf(closestEnemy);
+                        if (eIdx > -1) gameState.enemyAttacks.splice(eIdx, 1);
+                        damageEnemy(250);
+                    }
+                } else {
+                    u.x += (closestEnemy.x - u.x) * 0.05;
+                    u.y += (closestEnemy.y - u.y) * 0.05;
+                }
+            } else if (u.ammo <= 0) {
+                u.x += (canvas.width/2 - u.x) * 0.02;
+                u.y += (canvas.height/2 - u.y) * 0.02;
+                if (Math.hypot(u.x - canvas.width/2, u.y - canvas.height/2) < 20) {
+                     gameState.activeUnits.splice(index, 1);
+                     return;
+                }
             }
-        } else {
-            // Idle movement or returning to border
-            u.x += (canvas.width/2 - u.x) * 0.01;
-            u.y += (canvas.height/2 - u.y) * 0.01;
+
+            // Draw Soldier
+            ctx.fillStyle = '#90ee90';
+            ctx.beginPath(); ctx.arc(u.x, u.y, 4, 0, Math.PI * 2); ctx.fill();
+            const ammoPct = u.ammo / 12;
+            ctx.fillStyle = '#000'; ctx.fillRect(u.x - 5, u.y - 8, 10, 2);
+            ctx.fillStyle = ammoPct > 0.5 ? '#00ff00' : (ammoPct > 0 ? '#ffff00' : '#ff0000');
+            ctx.fillRect(u.x - 5, u.y - 8, 10 * ammoPct, 2);
+            return;
         }
+
+        ctx.fillStyle = u.type === 'navy' ? '#00bcd4' : '#ffffff';
     });
 
     // Enemy Attacks (War Animation)
-    gameState.enemyAttacks.forEach((a, index) => {
+            gameState.enemyAttacks.forEach((a, index) => {
         ctx.fillStyle = '#ff0000';
-        ctx.beginPath();
-        ctx.arc(a.x, a.y, 4, 0, Math.PI*2);
-        ctx.fill();
+        ctx.beginPath(); ctx.arc(a.x, a.y, 4, 0, Math.PI*2); ctx.fill();
         
-        // Move towards center
-        const angle = Math.atan2(canvas.height/2 - a.y, canvas.width/2 - a.x);
+        // Find nearest active unit (troop) to attack first
+        let targetTroop = null;
+        let minTroopDist = 1000;
+        gameState.activeUnits.forEach(u => {
+            const d = Math.hypot(a.x - u.x, a.y - u.y);
+            if (d < minTroopDist) { minTroopDist = d; targetTroop = u; }
+        });
+
+        // Target Logic: If a troop is within 300px, move to and attack troop. Otherwise, target base.
+        let tx = canvas.width/2, ty = canvas.height/2;
+        if (targetTroop && minTroopDist < 300) {
+            tx = targetTroop.x; ty = targetTroop.y;
+        }
+
+        const angle = Math.atan2(ty - a.y, tx - a.x);
         a.x += Math.cos(angle) * a.speed;
         a.y += Math.sin(angle) * a.speed;
 
-        // Check breach
-        const dist = Math.hypot(canvas.width/2 - a.x, canvas.height/2 - a.y);
-        if (dist < 100) {
+        // Check Hit Troop
+        if (targetTroop && minTroopDist < 15) {
+            // RELOAD VULNERABILITY: If reloading (6 bullets left or just fired mag), 1 hit = DEAD.
+            const isReloading = (targetTroop.ammo === 6 || (Date.now() - targetTroop.lastFire > 600));
+            if (isReloading) {
+                const troopIdx = gameState.activeUnits.indexOf(targetTroop);
+                if (troopIdx > -1) gameState.activeUnits.splice(troopIdx, 1);
+                createExplosion(a.x, a.y, '#ff0000');
+                gameState.enemyAttacks.splice(index, 1);
+                return;
+            }
+        }
+
+        const distToBase = Math.hypot(canvas.width/2 - a.x, canvas.height/2 - a.y);
+        if (distToBase < 100) {
             gameState.enemyAttacks.splice(index, 1);
             gameState.health -= 5;
-            createExplosion(a.x, a.y, '#ff0000');
-            if (gameState.health <= 0) endGame(false);
+        }
+    });
+
+        // Target Logic: If a troop is within 300px, move to and attack troop. Otherwise, target base.
+        let tx = canvas.width/2, ty = canvas.height/2;
+        if (targetTroop && minTroopDist < 300) {
+            tx = targetTroop.x; ty = targetTroop.y;
+        }
+
+        const angle = Math.atan2(ty - a.y, tx - a.x);
+        a.x += Math.cos(angle) * a.speed;
+        a.y += Math.sin(angle) * a.speed;
+
+        // Check Hit Troop
+        if (targetTroop && minTroopDist < 15) {
+            // RELOAD VULNERABILITY: If reloading (6 bullets left or just fired mag), 1 hit = DEAD.
+            const isReloading = (targetTroop.ammo === 6 || (Date.now() - targetTroop.lastFire > 600));
+            if (isReloading) {
+                const troopIdx = gameState.activeUnits.indexOf(targetTroop);
+                if (troopIdx > -1) gameState.activeUnits.splice(troopIdx, 1);
+                createExplosion(a.x, a.y, '#ff0000');
+                gameState.enemyAttacks.splice(index, 1);
+                return;
+            }
+        }
+
+        const distToBase = Math.hypot(canvas.width/2 - a.x, canvas.height/2 - a.y);
+        if (distToBase < 100) {
+            gameState.enemyAttacks.splice(index, 1);
+            gameState.health -= 5;
         }
     });
 
@@ -579,7 +658,7 @@ function startFarming() {
     if (gameState.isFarming) return;
     gameState.isFarming = true;
     const feedback = document.getElementById('training-feedback');
-    feedback.innerText = '⛏️ MINING RESOURCES...';
+    feedback.innerText = '?? MINING RESOURCES...';
     
     let cycles = 0;
     const farmInterval = setInterval(() => {
@@ -590,7 +669,7 @@ function startFarming() {
         gameState.resources += 1000 * gameState.level;
         updatePower();
         cycles++;
-        feedback.innerText = `⛏️ RESOURCES COLLECTED: $${gameState.resources}`;
+        feedback.innerText = `?? RESOURCES COLLECTED: $${gameState.resources}`;
         if (cycles >= 10) {
              gameState.isFarming = false;
              feedback.innerText = 'FARMING CYCLE COMPLETE. GOLD SECURED.';
