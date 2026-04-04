@@ -301,22 +301,45 @@
         <button class="unit-btn" style="width:100%; margin-top:5px;" onclick="closeModals()">DEACTIVATE PANELS</button>
     </div>
 
-    <div id="tutorial-modal" class="modal" style="width: 700px; max-height: 80vh; overflow-y: auto;">
-        <h2 style="color: #ffd700; text-align: center;">COMMANDER'S BRIEFING (TUTORIAL)</h2>
+        <div id="tutorial-modal" class="modal" style="width: 750px; max-height: 85vh; overflow-y: auto; background: #05070a; border-color: #00ff41;">
+        <h2 style="color: #00ff41; text-align: center; border-bottom: 2px solid #00ff41; padding-bottom: 10px;">COMMANDER'S TACTICAL BRIEFING</h2>
         <div style="font-size: 14px; line-height: 1.6; color: #00ff41;">
-            <p>Welcome, Commander. You are tasked with defending against the Global Coalition. Here is your strategic guide:</p>
-            <ul style="list-style-type: square; padding-left: 20px;">
-                <li><b style="color: #ffffff;">Phase 1: Build Your Power.</b> Use the <b>Arsenal & Manpower</b> panels to mobilize Infantry, Navy, and Airforce. Each unit adds to your total Power.</li>
-                <li><b style="color: #ffffff;">Phase 2: Munitions.</b> Visit the <b>Munitions Depot</b> to craft <b>Brahmos Defense</b> missiles (auto-interception) and <b>Attack Missiles</b> (strategic strikes).</li>
-                <li><b style="color: #ffffff;">Phase 3: Radar & Scanning.</b> Click <b>BUILD RADAR</b> to install the 500km long-range array. This is essential for early detection.</li>
-                <li><b style="color: #ffffff;">Phase 4: Attack & Defund.</b> Once you reach 70% of the enemy's power, engage in war. Toggling <b>AUTO ATTACK</b> will use your missiles automatically.</li>
-            </ul>
-            <div style="background: rgba(255, 215, 0, 0.1); border: 1px solid #ffd700; padding: 10px; border-radius: 5px;">
-                <b style="color: #ffd700;">PRO TIPS:</b>
-                <br>� Focus on <b>Radar</b> early to avoid surprise breaches.
-                <br>� Combine <b>Defense Brahmos</b> with <b>Attack Missiles</b> for a dual-strike defense.
-                <br>� Negotiate Alliances to boost your power exponentially without spending resources.
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
+                <div style="background: rgba(0, 255, 65, 0.05); padding: 15px; border: 1px solid #00ff41;">
+                    <h3 style="color: #ffd700; margin-top: 0;">?? THE HUD (TOP LEFT)</h3>
+                    <p><b>RESOURCES:</b> Generating currency via <b>START FARMING</b>. Use this to build units.</p>
+                    <p><b>OUR POWER:</b> Your total defense strength. Must exceed Coalition Power to survive!</p>
+                    <p><b>SPACE REMAINING:</b> Troop capacity. Air/Navy units take space, while Infantry is unlimited.</p>
+                </div>
+                <div style="background: rgba(255, 0, 0, 0.05); padding: 15px; border: 1px solid #ff0000;">
+                    <h3 style="color: #ff0000; margin-top: 0;">?? COALITION (TOP RIGHT)</h3>
+                    <p><b>ENEMY POWER:</b> Displays USA, UK, PAK, and CHINA strength. Defeat them to level up.</p>
+                    <p><b>IMPRESSION:</b> Your global reputation. Higher impressions increase Alliance chance.</p>
+                </div>
             </div>
+
+            <h3 style="color: #00bcd4; border-bottom: 1px solid #00bcd4;">?? COMMAND CONSOLE (BOTTOM CONTROLS)</h3>
+            <ul style="list-style: none; padding-left: 0;">
+                <li>?? <b>START FARMING:</b> Main income! Click this to generate resources over time.</li>
+                <li>?? <b>INFANTRY:</b> Fast, bulk manpower. Doesn't count toward troop limits.</li>
+                <li>?? <b>SHIPYARD & HANGAR:</b> Build advanced Navy/Air units with custom stealth and EW stats.</li>
+                <li>?? <b>MUNITIONS:</b> Craft <b>Brahmos</b> (Auto-Defense) and <b>Attack Missiles</b>.</li>
+                <li>?? <b>RADAR:</b> Essential for early detection of coalition ships and missiles.</li>
+                <li>?? <b>SECRET OPS:</b> High-risk Cyber/Nuke protocols for extreme situations.</li>
+            </ul>
+
+            <div style="background: rgba(255, 215, 0, 0.1); border: 1px solid #ffd700; padding: 15px; border-radius: 5px; margin-top: 20px;">
+                <h3 style="color: #ffd700; margin-top: 0;">?? HOW TO DEFEND</h3>
+                <ol>
+                    <li>Spam <b>START FARMING</b> early to max out your bank.</li>
+                    <li>Invest in <b>Navy/Air/Missiles</b> to raise your <b>Power</b>.</li>
+                    <li>The <b>ATTACK AND DEFUND</b> button unlocks at 70% of Coalition Power.</li>
+                    <li>During War, use <b>AUTO ATTACK</b> to handle incoming threats automatically.</li>
+                </ol>
+            </div>
+        </div>
+        <button class="unit-btn" style="width:100%; margin-top: 20px;" onclick="closeModals()">INITIALIZE COMMAND INTERFACE</button>
+    </div>
         </div>
         <button class="unit-btn" style="width:100%; margin-top: 20px;" onclick="closeModals()">ACKNOWLEDGED (START PLAYING)</button>
     </div>

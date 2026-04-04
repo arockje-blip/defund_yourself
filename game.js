@@ -189,6 +189,25 @@ function loadProgress(user) {
     gameState.units = user.state.units || { army: 0, navy: 0, air: 0, secret: 0 };
     gameState.defense = user.state.defense || 0;
     gameState.ourPower = user.state.ourPower || 0;
+
+    // Apply scaling for Master ID or any high-level saved state
+    const newPower = getScaledPower(gameState.level);
+    gameState.initialEnemyPower = newPower;
+    gameState.enemyPower = newPower;
+
+    // Reset nations based on new power
+    gameState.nations.forEach(n => {
+        let ratio = 0.25; // Default even distribution if not specified
+        if (n.name === 'USA') ratio = 0.4;
+        else if (n.name === 'UK') ratio = 0.1;
+        else if (n.name === 'PAK') ratio = 0.24;
+        else if (n.name === 'CHINA') ratio = 0.26;
+        
+        n.max = newPower * ratio;
+        n.power = n.max;
+        n.active = true;
+    });
+
     gameState.nations = user.state.nations || gameState.nations;
     
     updateHUD();
