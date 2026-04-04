@@ -58,7 +58,7 @@ const gameState = {
     offset: { x: 0, y: 0 },
     isDragging: false,
     lastMouse: { x: 0, y: 0 },
-    zoom: 1
+    zoom: 0.5
 };
 
 // Troop Limit Logic: 10,000 at level 1, +100% (doubles) each level
@@ -689,8 +689,10 @@ function drawMap() {
 
             // Distance label
             ctx.fillStyle = '#ff0000';
-            ctx.font = '9px Courier New';
-            ctx.fillText("2000KM HOSTILE BASE", e.x - 40, e.y + 25);
+            ctx.font = 'bold 14px Courier New';
+            ctx.textAlign = 'center';
+            ctx.fillText("2000KM HOSTILE BASE", e.x, e.y + 35);
+            ctx.textAlign = 'start';
         });
     }
 
@@ -809,7 +811,7 @@ canvas.addEventListener('mouseup', () => gameState.isDragging = false);
 canvas.addEventListener('mouseleave', () => gameState.isDragging = false);
 canvas.addEventListener('wheel', (e) => {
     const delta = e.deltaY > 0 ? 0.9 : 1.1;
-    gameState.zoom = Math.min(Math.max(gameState.zoom * delta, 0.5), 2.5);
+    gameState.zoom = Math.min(Math.max(gameState.zoom * delta, 0.2), 2.5);
     e.preventDefault();
 }, { passive: false });
 
