@@ -7,9 +7,10 @@ headingDivider: 2
 ---
 
 # 🛸 DEFUND YOURSELF
+
 ## COMMANDER'S TACTICAL ARISE
 
-**Tactical Defense & Economic Strategy Simulation**
+## Tactical Defense & Economic Strategy Simulation
 
 ---
 
@@ -49,16 +50,16 @@ headingDivider: 2
 
 # ⚓ NAVY & AIRFORCE MECHANICS
 
-- **Fleet Munitions**: 
-    - **Navy**: 5 Missiles per Vessel.
-    - **Air**: 2 Missiles per Aircraft.
-- **Nuclear Ram Mode**:
-    - Units enter **RAM MODE** when ammo is spent.
-    - **Color Change**: Navy (Ben10 Green) | Air (LawnGreen).
-- **Core Breach Detonation**:
-    - Final ram triggers a **Massive Nuclear Explosion**.
-    - **AOE**: 750px (Navy) | 500px (Air).
-    - **Damage**: 10x nation power impact.
+- **Fleet Munitions**
+  - **Navy**: 5 Missiles per Vessel.
+  - **Air**: 2 Missiles per Aircraft.
+- **Nuclear Ram Mode**
+  - Units enter **RAM MODE** when ammo is spent.
+  - **Color Change**: Navy (Ben10 Green) | Air (LawnGreen).
+- **Core Breach Detonation**
+  - Final ram triggers a **Massive Nuclear Explosion**.
+  - **AOE**: 750px (Navy) | 500px (Air).
+  - **Damage**: 10x nation power impact.
 
 ---
 
@@ -96,5 +97,8 @@ headingDivider: 2
 
 ---
 
-## 🛸 COMMANDER: THE CHOICE IS YOURS.
-### DEFEND. ARISE. DEFUND.
+## 🛸 COMMANDER: THE CHOICE IS YOURS
+
+### DEFEND. ARISE. DEFUND
+
+---
