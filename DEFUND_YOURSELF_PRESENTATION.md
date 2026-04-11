@@ -10,7 +10,7 @@ headingDivider: 2
 
 ## COMMANDER'S TACTICAL ARISE
 
-## Tactical Defense & Economic Strategy Simulation
+### Tactical Defense & Economic Strategy Simulation
 
 ---
 
@@ -48,7 +48,7 @@ headingDivider: 2
 
 ---
 
-# ⚓ NAVY & AIRFORCE MECHANICS
+## ⚓ NAVY & AIRFORCE MECHANICS
 
 - **Fleet Munitions**
   - **Navy**: 5 Missiles per Vessel.
@@ -63,7 +63,7 @@ headingDivider: 2
 
 ---
 
-# ☢️ SECRET PROTOCOLS (DARK OPS)
+## ☢️ SECRET PROTOCOLS (DARK OPS)
 
 - **Cyber Jamming**: High-level disruption of enemy nation networks.
 - **Stealth Cloaking**: Invisibility against interceptors.
@@ -71,7 +71,7 @@ headingDivider: 2
 
 ---
 
-# ☁️ CLOUD DATA & SYNC
+## ☁️ CLOUD DATA & SYNC
 
 - **Firebase Firestore**: Real-time global leaderboards and data persistence.
 - **Dynamic Scaling**: Global nation power scales exponentially with player level.
@@ -80,7 +80,7 @@ headingDivider: 2
 
 ---
 
-# 🛡️ SYSTEM SECURITY
+## 🛡️ SYSTEM SECURITY
 
 - **Elite Defense**: **Bcrypt password hashing** ensures user keys are unreadable even in DB.
 - **Admin Recovery**: Optional **AES-256 encrypted recovery** with the secret **Elite111** key.
@@ -89,7 +89,7 @@ headingDivider: 2
 
 ---
 
-# 🚀 ENDING THE WAR
+## 🚀 ENDING THE WAR
 
 - **Engagement Distance**: Hostile detections up to **1000KM**.
 - **The Counter-Strike**: Toggling **AUTO ATTACK** for synchronized missile volleys.
