@@ -578,7 +578,7 @@ function drawMap() {
             return;
         }
 
-        if (u.type === 'infantry') {
+        if (u.type === 'infantry' || u.type === 'army') {
             // INFANTRY UPGRADE: 500M gun range (approx 50px) and 3s reload
             const rangePixels = 50; 
             let closestEnemy = null;
@@ -643,6 +643,86 @@ function drawMap() {
             return;
         }
 
+        // --- NAVY UNIT LOGIC (5 Missiles per Ship) ---
+        if (u.type === 'navy') {
+            let target = null;
+            let minDist = 400; // Ships have long range
+            gameState.enemyAttacks.forEach(a => {
+                const d = Math.hypot(u.x - a.x, u.y - a.y);
+                if (d < minDist) { minDist = d; target = a; }
+            });
+
+            if (target && u.ammo > 0) {
+                if (Date.now() - (u.lastFire || 0) > 2000) { // 2s Fire Rate
+                    u.ammo--;
+                    u.lastFire = Date.now();
+                    // Launch an internal mini-missile for visual
+                    const angle = Math.atan2(target.y - u.y, target.x - u.x);
+                    gameState.activeUnits.push({
+                        type: 'missile',
+                        x: u.x, y: u.y,
+                        tx: target.x, ty: target.y,
+                        spec: { power: u.spec ? (u.spec.atk || 1) : 1, speed: 2 },
+                        autoPilot: true
+                    });
+                }
+            }
+
+            // Draw Ship
+            ctx.fillStyle = '#00bcd4';
+            ctx.fillRect(u.x - 12, u.y - 6, 24, 12);
+            ctx.fillStyle = '#fff';
+            ctx.font = '10px Courier New';
+            ctx.fillText(`M:${u.ammo}`, u.x-10, u.y-10);
+            return;
+        }
+
+        // --- AIRFORCE UNIT LOGIC (2 Missiles per Aircraft) ---
+        if (u.type === 'air') {
+            let target = null;
+            let minDist = 600; 
+            gameState.enemyAttacks.forEach(a => {
+                const d = Math.hypot(u.x - a.x, u.y - a.y);
+                if (d < minDist) { minDist = d; target = a; }
+            });
+
+            if (target) {
+                u.x += (target.x - u.x) * 0.06;
+                u.y += (target.y - u.y) * 0.06;
+
+                if (u.ammo > 0 && Math.hypot(u.x - target.x, u.y - target.y) < 200) {
+                    if (Date.now() - (u.lastFire || 0) > 1200) {
+                        u.ammo--;
+                        u.lastFire = Date.now();
+                        gameState.activeUnits.push({
+                            type: 'missile',
+                            x: u.x, y: u.y,
+                            tx: target.x, ty: target.y,
+                            spec: { power: 1, speed: 4 },
+                            autoPilot: true
+                        });
+                    }
+                }
+            } else {
+                // Circle home
+                const ang = Date.now() / 1000;
+                u.x += (canvas.width/2 + Math.cos(ang) * 150 - u.x) * 0.02;
+                u.y += (canvas.height/2 + Math.sin(ang) * 150 - u.y) * 0.02;
+            }
+
+            // Draw Aircraft
+            ctx.fillStyle = '#ffffff';
+            ctx.beginPath();
+            ctx.moveTo(u.x, u.y - 8);
+            ctx.lineTo(u.x - 8, u.y + 8);
+            ctx.lineTo(u.x + 8, u.y + 8);
+            ctx.closePath(); ctx.fill();
+            ctx.fillStyle = '#00ff41';
+            ctx.font = '10px Courier New';
+            ctx.fillText(`M:${u.ammo}`, u.x-10, u.y-12);
+            return;
+        }
+
         ctx.fillStyle = u.type === 'navy' ? '#00bcd4' : '#ffffff';
     });
 
@@ -688,11 +768,19 @@ function drawMap() {
         if (targetTroop && minTroopDist < 15) {
             // RELOAD VULNERABILITY: If reloading (6 bullets left or just fired mag), 1 hit = DEAD.
             const isReloading = (targetTroop.ammo === 6 || (Date.now() - targetTroop.lastFire > 600));
-            if (isReloading) {
+            // Navy/Air are tougher than infantry
+            const isTough = (targetTroop.type === 'navy' || targetTroop.type === 'air');
+            
+            if (isReloading || !isTough) {
                 const troopIdx = gameState.activeUnits.indexOf(targetTroop);
                 if (troopIdx > -1) gameState.activeUnits.splice(troopIdx, 1);
                 createExplosion(a.x, a.y, '#ff0000');
                 gameState.enemyAttacks.splice(index, 1);
+                return;
+            } else if (isTough) {
+                // Tougher units just absorb the enemy projectile
+                gameState.enemyAttacks.splice(index, 1);
+                createExplosion(a.x, a.y, '#ffd700'); 
                 return;
             }
         }
@@ -1283,47 +1371,78 @@ function spawnWave() {
         gameState.enemyAttacks.push({
             x: canvas.width/2 + Math.cos(angle) * dist,
             y: canvas.height/2 + Math.sin(angle) * dist,
-            speed: 1 + Math.random() * 1.5,
-            targeted: false
+            speed: 1.5 + Math.random() * 2, // Slightly faster for war engagement
+            targeted: false,
+            hp: 1 // Enemies can be tougher later if needed
         });
     }
 }
 
 function deployUnit(type, autoTarget = null) {
-    const deployQty = autoTarget ? 1 : (parseInt(document.getElementById('deploy-qty').value) || 1);
+    // If not autoTarget, check global limit (deploy-qty)
+    const deployQtyInput = document.getElementById('deploy-qty');
+    const deployQty = autoTarget ? 1 : (parseInt(deployQtyInput ? deployQtyInput.value : 1) || 1);
     
     for (let q = 0; q < deployQty; q++) {
+        // --- INFANTRY LOGIC ---
         if (type === 'army') {
             if (gameState.units.army <= 0) break;
             gameState.units.army--;
             
-            // Random deploy pos around center
             const ang = Math.random() * Math.PI * 2;
             const r = 50 + Math.random() * 50;
             
-            // Assign target
-            let target = autoTarget;
-            if (!target) {
-                let minDist = 2000;
-                gameState.enemyAttacks.forEach(a => {
-                    const d = Math.hypot(canvas.width/2 - a.x, canvas.height/2 - a.y);
-                    if (d < minDist) { minDist = d; target = a; }
-                });
-            }
-
             gameState.activeUnits.push({
-                type: 'infantry',
+                type: 'army',
                 x: canvas.width/2 + Math.cos(ang) * r,
                 y: canvas.height/2 + Math.sin(ang) * r,
-                tx: target ? target.x : canvas.width/2,
-                ty: target ? target.y : canvas.height/2,
-                ammo: 12, // 2 Magazines of 6 bullets
+                ammo: 12,
                 lastFire: 0
             });
-            updatePower();
             continue;
         }
 
+        // --- NAVY LOGIC (5 Missiles per Ship) ---
+        if (type === 'navy') {
+            if (gameState.customShips.length <= 0) break;
+            const ship = gameState.customShips.pop();
+            gameState.units.navy--;
+            
+            const ang = Math.random() * Math.PI * 2;
+            const r = 130 + Math.random() * 20;
+            
+            gameState.activeUnits.push({
+                type: 'navy',
+                x: canvas.width/2 + Math.cos(ang) * r,
+                y: canvas.height/2 + Math.sin(ang) * r,
+                ammo: 5, // 5 Missiles
+                spec: ship,
+                lastFire: 0
+            });
+            continue;
+        }
+
+        // --- AIRFORCE LOGIC (2 Missiles per Aircraft) ---
+        if (type === 'air') {
+            if (gameState.customAircraft.length <= 0) break;
+            const plane = gameState.customAircraft.pop();
+            gameState.units.air--;
+            
+            const ang = Math.random() * Math.PI * 2;
+            const r = 160 + Math.random() * 30;
+            
+            gameState.activeUnits.push({
+                type: 'air',
+                x: canvas.width/2 + Math.cos(ang) * r,
+                y: canvas.height/2 + Math.sin(ang) * r,
+                ammo: 2, // 2 Missiles
+                spec: plane,
+                lastFire: 0
+            });
+            continue;
+        }
+
+        // --- MISSILE / DEFENSE LOGIC ---
         if (type === 'defense' || type === 'attack' || type.startsWith('msl-')) {
             let spec;
             if (type === 'defense') {
