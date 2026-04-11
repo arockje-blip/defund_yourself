@@ -689,7 +689,17 @@ function drawMap() {
                         
                         if (u.kills >= 3) {
                             gameState.activeUnits.splice(index, 1);
-                            createExplosion(u.x, u.y, '#ff0000');
+                            // NUCLEAR FINAL DETONATION
+                            createExplosion(u.x, u.y, '#ffffff'); 
+                            damageEnemy(5000); // 10x regular ram damage
+                            // AOE: Destroy nearby hostiles in nuclear blast
+                            gameState.enemyAttacks = gameState.enemyAttacks.filter(a => {
+                                if (Math.hypot(u.x - a.x, u.y - a.y) < 150) {
+                                    createExplosion(a.x, a.y, '#ffd700');
+                                    return false;
+                                }
+                                return true;
+                            });
                             return;
                         }
                     }
@@ -702,6 +712,11 @@ function drawMap() {
             ctx.fillStyle = '#fff';
             ctx.font = '10px Courier New';
             ctx.fillText(u.ammo > 0 ? `M:${u.ammo}` : `RAM:${3-(u.kills||0)}`, u.x-10, u.y-10);
+            if (u.ammo <= 0) {
+                ctx.fillStyle = '#ff0000';
+                ctx.font = 'bold 8px Courier New';
+                ctx.fillText("NUKE_CORE:CRITICAL", u.x-25, u.y+20);
+            }
             return;
         }
 
@@ -742,7 +757,17 @@ function drawMap() {
                         
                         if (u.kills >= 2) {
                             gameState.activeUnits.splice(index, 1);
-                            createExplosion(u.x, u.y, '#ff0000');
+                            // NUCLEAR FINAL DETONATION
+                            createExplosion(u.x, u.y, '#ffffff');
+                            damageEnemy(3000); // Massive core Breach damage
+                            // AOE: Destroy nearby hostiles in nuclear blast
+                            gameState.enemyAttacks = gameState.enemyAttacks.filter(a => {
+                                if (Math.hypot(u.x - a.x, u.y - a.y) < 100) {
+                                    createExplosion(a.x, a.y, '#ffd700');
+                                    return false;
+                                }
+                                return true;
+                            });
                             return;
                         }
                     }
@@ -764,6 +789,11 @@ function drawMap() {
             ctx.fillStyle = '#00ff41';
             ctx.font = '10px Courier New';
             ctx.fillText(u.ammo > 0 ? `M:${u.ammo}` : `RAM:${2-(u.kills||0)}`, u.x-10, u.y-12);
+            if (u.ammo <= 0) {
+                ctx.fillStyle = '#ff0000';
+                ctx.font = 'bold 8px Courier New';
+                ctx.fillText("CORE:UNSTABLE", u.x-25, u.y+20);
+            }
             return;
         }
 
