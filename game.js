@@ -451,8 +451,8 @@ function updateHUD() {
     document.getElementById('stat-navy').innerText = gameState.units.navy;
     document.getElementById('stat-air').innerText = gameState.units.air;
     document.getElementById('stat-defense').innerText = gameState.defense;
-    document.getElementById('stat-power').innerText = gameState.ourPower === Infinity ? 'UNLIMITED' : Math.floor(gameState.ourPower);
-    document.getElementById('stat-space').innerText = getSpaceRemaining();
+    document.getElementById('stat-power').innerText = gameState.ourPower === Infinity ? 'UNLIMITED' : Math.floor(gameState.ourPower).toLocaleString();
+    document.getElementById('stat-space').innerText = Math.floor(getSpaceRemaining()).toLocaleString();
     // ... existing update HUD logic usually goes here, adding this to ensure start values are right
 }
 
@@ -520,9 +520,10 @@ function drawMap() {
     // Display Username in the center
     if (currentUser && currentUser.username) {
         ctx.fillStyle = gameState.warActive ? '#ffff00' : '#00ff41';
-        ctx.font = 'bold 16px Courier New';
+        ctx.font = 'bold 20px Courier New'; // Increased size for visibility
         ctx.textAlign = 'center';
-        ctx.fillText(currentUser.username.toUpperCase(), canvas.width/2, canvas.height/2 + 5);
+        ctx.textBaseline = 'middle';
+        ctx.fillText(currentUser.username.toUpperCase(), canvas.width/2, canvas.height/2);
     }
 
     // Defense Brahmos Range
