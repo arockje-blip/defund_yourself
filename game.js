@@ -29,7 +29,7 @@ const gameState = {
     level: 1,
     resources: 1000,
     isFarming: false,
-    ourPower: Infinity,
+    ourPower: 0,
     enemyPower: 50000,
     initialEnemyPower: 50000,
     nations: [
@@ -340,14 +340,14 @@ function loadProgress(user) {
     gameState.defense = user.state.defense || 0;
     gameState.ourPower = user.state.ourPower || 0;
 
-    // Apply scaling for Master ID or any high-level saved state
+    // Scale power for the new level
     const newPower = getScaledPower(gameState.level);
     gameState.initialEnemyPower = newPower;
     gameState.enemyPower = newPower;
+    gameState.ourPower = 0; // Reset our power initially to calculate from current units
 
-    // Reset nations based on new power
     gameState.nations.forEach(n => {
-        let ratio = 0.25; // Default even distribution if not specified
+        let ratio = 0.25;
         if (n.name === 'USA') ratio = 0.4;
         else if (n.name === 'UK') ratio = 0.1;
         else if (n.name === 'PAK') ratio = 0.24;
@@ -516,6 +516,14 @@ function drawMap() {
     ctx.stroke();
     ctx.fillStyle = gameState.health < 30 ? 'rgba(255, 165, 0, 0.1)' : 'rgba(0, 255, 65, 0.05)';
     ctx.fill();
+
+    // Display Username in the center
+    if (currentUser && currentUser.username) {
+        ctx.fillStyle = gameState.warActive ? '#ffff00' : '#00ff41';
+        ctx.font = 'bold 16px Courier New';
+        ctx.textAlign = 'center';
+        ctx.fillText(currentUser.username.toUpperCase(), canvas.width/2, canvas.height/2 + 5);
+    }
 
     // Defense Brahmos Range
     if (gameState.defense > 0 && !gameState.warActive) {
@@ -1629,17 +1637,13 @@ function nextLevel() {
     if (report) report.remove();
     
     gameState.level++;
-    gameState.resources += 25000 * gameState.level; // Massive bonus for completion
+    gameState.resources += 25000 * gameState.level; 
     
-    // Scale power for the new level: 50k * (2^(level-1))
     const newPower = getScaledPower(gameState.level);
     gameState.initialEnemyPower = newPower;
     gameState.enemyPower = newPower;
-    gameState.ourPower = Infinity;
 
     gameState.nations.forEach(n => {
-        // Distribute new total power proportionally among nations (using original distribution ratios)
-        // Ratio logic: USA (20/50), UK (5/50), PAK (12/50), CHINA (13/50)
         let ratio = 1;
         if (n.name === 'USA') ratio = 0.4;
         else if (n.name === 'UK') ratio = 0.1;
@@ -1651,15 +1655,14 @@ function nextLevel() {
         n.active = true;
     });
     
-    // Reset battle state only
     gameState.health = 100;
-    gameState.units = { army: 0, navy: 0, air: 0, secret: 0 };
-    
-    saveProgress();
-    updateHUD();
-
     gameState.atkMissiles = [];
     gameState.customShips = [];
+    gameState.customAircraft = [];
+    gameState.activeUnits = [];
+    
+    updatePower();
+}
     gameState.customAircraft = [];
     gameState.activeUnits = [];
     gameState.enemyAttacks = [];
