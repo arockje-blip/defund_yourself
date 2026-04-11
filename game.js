@@ -1198,13 +1198,17 @@ function updatePower() {
         const allianceBonus = (gameState.allianceImpression / 100) * (gameState.initialEnemyPower * 0.5);
         gameState.ourPower = armyPower + navyPower + airPower + mslPower + radarPower + allianceBonus;
         
+        // SAFETY: Handle any math errors
+        if (isNaN(gameState.ourPower) || !isFinite(gameState.ourPower)) gameState.ourPower = 0;
+
         saveProgress();
 
         // Enemy HUD Logic
         let currentTotalEnemy = 0;
         let enemyHudHtml = '';
         gameState.nations.forEach(n => {
-            const pct = Math.floor((n.power / n.max) * 100);
+            // Safety: Ensure n.max isn't zero to avoid division by zero
+            const pct = (n.max > 0) ? Math.floor((n.power / n.max) * 100) : 0;
             if (n.power <= 0 && n.active) {
                 n.active = false;
                 createExplosion(canvas.width/2, canvas.height/2, '#ff0000'); // Visual for nation fall
@@ -1227,7 +1231,7 @@ function updatePower() {
         const statEnemyPower = document.getElementById('stat-enemy-power');
         if (statEnemyPower) statEnemyPower.innerText = Math.floor(gameState.enemyPower).toLocaleString();
         
-        const enemyRatio = (gameState.enemyPower / gameState.initialEnemyPower) * 100;
+        const enemyRatio = (gameState.initialEnemyPower > 0) ? (gameState.enemyPower / gameState.initialEnemyPower) * 100 : 0;
         const enemyPowerFill = document.getElementById('enemy-power-fill');
         if (enemyPowerFill) enemyPowerFill.style.width = enemyRatio + '%';
 
@@ -1255,7 +1259,8 @@ function updatePower() {
         const statPower = document.getElementById('stat-power');
         if (statPower) statPower.innerText = Math.floor(gameState.ourPower).toLocaleString();
 
-        const ratio = Math.min(100, (gameState.ourPower / gameState.initialEnemyPower) * 100);
+        // Use a relative shield/power comparison that won't break if one side is huge
+        const ratio = (gameState.initialEnemyPower > 0) ? Math.min(100, (gameState.ourPower / gameState.initialEnemyPower) * 100) : 100;
         const powerFill = document.getElementById('power-fill');
         if (powerFill) powerFill.style.width = ratio + '%';
         
