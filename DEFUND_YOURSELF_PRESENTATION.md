@@ -47,6 +47,21 @@ headingDivider: 2
 
 ---
 
+# ⚓ NAVY & AIRFORCE MECHANICS
+
+- **Fleet Munitions**: 
+    - **Navy**: 5 Missiles per Vessel.
+    - **Air**: 2 Missiles per Aircraft.
+- **Nuclear Ram Mode**:
+    - Units enter **RAM MODE** when ammo is spent.
+    - **Color Change**: Navy (Ben10 Green) | Air (LawnGreen).
+- **Core Breach Detonation**:
+    - Final ram triggers a **Massive Nuclear Explosion**.
+    - **AOE**: 750px (Navy) | 500px (Air).
+    - **Damage**: 10x nation power impact.
+
+---
+
 # ☢️ SECRET PROTOCOLS (DARK OPS)
 
 - **Cyber Jamming**: High-level disruption of enemy nation networks.

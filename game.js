@@ -689,12 +689,12 @@ function drawMap() {
                         
                         if (u.kills >= 3) {
                             gameState.activeUnits.splice(index, 1);
-                            // NUCLEAR FINAL DETONATION
-                            createExplosion(u.x, u.y, '#ffffff'); 
+                            // NUCLEAR FINAL DETONATION - MASSIVE RADIUS
+                            createExplosion(u.x, u.y, '#ffffff', 100); // 5x larger visual radius
                             damageEnemy(5000); // 10x regular ram damage
                             // AOE: Destroy nearby hostiles in nuclear blast
                             gameState.enemyAttacks = gameState.enemyAttacks.filter(a => {
-                                if (Math.hypot(u.x - a.x, u.y - a.y) < 150) {
+                                if (Math.hypot(u.x - a.x, u.y - a.y) < 750) { // 5x larger effect (150 * 5)
                                     createExplosion(a.x, a.y, '#ffd700');
                                     return false;
                                 }
@@ -707,7 +707,7 @@ function drawMap() {
             }
 
             // Draw Ship
-            ctx.fillStyle = u.ammo > 0 ? '#00bcd4' : '#ff4500';
+            ctx.fillStyle = u.ammo > 0 ? '#00bcd4' : '#32CD32'; // Ben10 Green (LimeGreen) for Navy ram mode
             ctx.fillRect(u.x - 12, u.y - 6, 24, 12);
             ctx.fillStyle = '#fff';
             ctx.font = '10px Courier New';
@@ -757,12 +757,12 @@ function drawMap() {
                         
                         if (u.kills >= 2) {
                             gameState.activeUnits.splice(index, 1);
-                            // NUCLEAR FINAL DETONATION
-                            createExplosion(u.x, u.y, '#ffffff');
+                            // NUCLEAR FINAL DETONATION - MASSIVE RADIUS
+                            createExplosion(u.x, u.y, '#ffffff', 80); // 4x larger visual
                             damageEnemy(3000); // Massive core Breach damage
                             // AOE: Destroy nearby hostiles in nuclear blast
                             gameState.enemyAttacks = gameState.enemyAttacks.filter(a => {
-                                if (Math.hypot(u.x - a.x, u.y - a.y) < 100) {
+                                if (Math.hypot(u.x - a.x, u.y - a.y) < 500) { // 5x larger effect (100 * 5)
                                     createExplosion(a.x, a.y, '#ffd700');
                                     return false;
                                 }
@@ -780,7 +780,7 @@ function drawMap() {
             }
 
             // Draw Aircraft
-            ctx.fillStyle = u.ammo > 0 ? '#ffffff' : '#ff4500';
+            ctx.fillStyle = u.ammo > 0 ? '#ffffff' : '#7cfc00'; // LawnGreen for Air ram mode
             ctx.beginPath();
             ctx.moveTo(u.x, u.y - 8);
             ctx.lineTo(u.x - 8, u.y + 8);
@@ -944,12 +944,12 @@ function drawMap() {
 }
 
 const explosions = [];
-function createExplosion(x, y, color) {
-    explosions.push({x, y, color, life: 20});
+function createExplosion(x, y, color, size = 20) {
+    explosions.push({x, y, color, life: size, startLife: size});
 }
 
 function createMuzzleFlash(x1, y1, x2, y2) {
-    explosions.push({x: x1, y: y1, color: '#ffff00', life: 5, isBullet: true, tx: x2, ty: y2});
+    explosions.push({x: x1, y: y1, color: '#ffff00', life: 5, startLife: 5, isBullet: true, tx: x2, ty: y2});
 }
 
 // Reduced Explosion complexity
@@ -968,7 +968,8 @@ function drawExplosions() {
             ctx.strokeStyle = ex.color;
             ctx.lineWidth = 1;
             ctx.beginPath();
-            ctx.rect(ex.x - (20-ex.life), ex.y - (20-ex.life), (20-ex.life)*2, (20-ex.life)*2);
+            const radius = ex.startLife - ex.life;
+            ctx.rect(ex.x - radius, ex.y - radius, radius * 2, radius * 2);
             ctx.stroke();
         }
         ex.life -= 2; 

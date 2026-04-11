@@ -17,8 +17,14 @@
     *   **Ammo & Gun**: 12 Bullets (2 Magazines of 6).
     *   **Visual Logic**: Muzzle Flash (`createMuzzleFlash`) using `setLineDash([2, 4])` for yellow tracer fire.
     *   **Vulnerability**: **3s Reload** during which they are vulnerable to 1-hit kills from enemy projectiles.
-*   🚢 **Naval Shipyard**: Commission custom stealth vessels with high durability and customizable specs.
-*   ✈️ **Hangar**: Deploy rapid-response aircraft with Electronic Warfare capabilities and high-speed interception.
+*   🚢 **Naval Shipyard**: Commission custom stealth vessels.
+    *   **Ammo**: 5 Missiles per ship.
+    *   **Kamikaze Mode**: After ammo is spent, transitions to **Ben10 Green** (`#32CD32`) and rams up to 3 targets.
+    *   **Nuclear Core**: Final ram triggers a massive **Nuclear Explosion** (750px AOE).
+*   ✈️ **Hangar**: Deploy rapid-response aircraft.
+    *   **Ammo**: 2 Missiles per plane.
+    *   **Ram Mode**: Transitions to **LawnGreen** (`#7cfc00`) and rams up to 2 targets.
+    *   **Core Breach**: Final ram triggers a high-intensity **Nuclear Detonation** (500px AOE).
 
 ### 3. Munitions & Defense
 *   🚀 **Brahmos (Defense)**: Automatic interception missiles. Essential for stopping incoming projectiles. Use more for higher success rates.
