@@ -657,7 +657,6 @@ function drawMap() {
                     u.ammo--;
                     u.lastFire = Date.now();
                     // Launch an internal mini-missile for visual
-                    const angle = Math.atan2(target.y - u.y, target.x - u.x);
                     gameState.activeUnits.push({
                         type: 'missile',
                         x: u.x, y: u.y,
@@ -666,14 +665,43 @@ function drawMap() {
                         autoPilot: true
                     });
                 }
+            } else if (u.ammo <= 0) {
+                // KAMIKAZE MODE: No ammo left, ram targets
+                if (!target) {
+                    // Find any target within map
+                    gameState.enemyAttacks.forEach(a => {
+                        const d = Math.hypot(u.x - a.x, u.y - a.y);
+                        if (d < 1000) { target = a; }
+                    });
+                }
+
+                if (target) {
+                    u.x += (target.x - u.x) * 0.05;
+                    u.y += (target.y - u.y) * 0.05;
+                    
+                    if (Math.hypot(u.x - target.x, u.y - target.y) < 20) {
+                        if (u.kills === undefined) u.kills = 0;
+                        u.kills++;
+                        const eIdx = gameState.enemyAttacks.indexOf(target);
+                        if (eIdx > -1) gameState.enemyAttacks.splice(eIdx, 1);
+                        createExplosion(target.x, target.y, '#00bcd4');
+                        damageEnemy(500);
+                        
+                        if (u.kills >= 3) {
+                            gameState.activeUnits.splice(index, 1);
+                            createExplosion(u.x, u.y, '#ff0000');
+                            return;
+                        }
+                    }
+                }
             }
 
             // Draw Ship
-            ctx.fillStyle = '#00bcd4';
+            ctx.fillStyle = u.ammo > 0 ? '#00bcd4' : '#ff4500';
             ctx.fillRect(u.x - 12, u.y - 6, 24, 12);
             ctx.fillStyle = '#fff';
             ctx.font = '10px Courier New';
-            ctx.fillText(`M:${u.ammo}`, u.x-10, u.y-10);
+            ctx.fillText(u.ammo > 0 ? `M:${u.ammo}` : `RAM:${3-(u.kills||0)}`, u.x-10, u.y-10);
             return;
         }
 
@@ -702,16 +730,32 @@ function drawMap() {
                             autoPilot: true
                         });
                     }
+                } else if (u.ammo <= 0) {
+                    // RAMMING LOGIC
+                    if (Math.hypot(u.x - target.x, u.y - target.y) < 20) {
+                        if (u.kills === undefined) u.kills = 0;
+                        u.kills++;
+                        const eIdx = gameState.enemyAttacks.indexOf(target);
+                        if (eIdx > -1) gameState.enemyAttacks.splice(eIdx, 1);
+                        createExplosion(target.x, target.y, '#ffffff');
+                        damageEnemy(300);
+                        
+                        if (u.kills >= 2) {
+                            gameState.activeUnits.splice(index, 1);
+                            createExplosion(u.x, u.y, '#ff0000');
+                            return;
+                        }
+                    }
                 }
             } else {
-                // Circle home
+                // Circle home or search
                 const ang = Date.now() / 1000;
                 u.x += (canvas.width/2 + Math.cos(ang) * 150 - u.x) * 0.02;
                 u.y += (canvas.height/2 + Math.sin(ang) * 150 - u.y) * 0.02;
             }
 
             // Draw Aircraft
-            ctx.fillStyle = '#ffffff';
+            ctx.fillStyle = u.ammo > 0 ? '#ffffff' : '#ff4500';
             ctx.beginPath();
             ctx.moveTo(u.x, u.y - 8);
             ctx.lineTo(u.x - 8, u.y + 8);
@@ -719,7 +763,7 @@ function drawMap() {
             ctx.closePath(); ctx.fill();
             ctx.fillStyle = '#00ff41';
             ctx.font = '10px Courier New';
-            ctx.fillText(`M:${u.ammo}`, u.x-10, u.y-12);
+            ctx.fillText(u.ammo > 0 ? `M:${u.ammo}` : `RAM:${2-(u.kills||0)}`, u.x-10, u.y-12);
             return;
         }
 
