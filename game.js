@@ -1661,11 +1661,6 @@ function nextLevel() {
     gameState.customShips = [];
     gameState.customAircraft = [];
     gameState.activeUnits = [];
-    
-    updatePower();
-}
-    gameState.customAircraft = [];
-    gameState.activeUnits = [];
     gameState.enemyAttacks = [];
     
     document.getElementById('main-controls').style.display = 'flex';
